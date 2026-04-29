@@ -448,24 +448,29 @@ const Parcours = () => {
 
   const students = studentsByClass[classId] || [];
 
-  // Zoom — initialisé à 50% comme demandé
-  const [scale, setScale] = useState(0.5);
+  // Zoom — bornes calculées dynamiquement (min = fit total, max = vue rapprochée)
+  const [scale, setScale] = useState(0.4);
+  const [minScale, setMinScale] = useState(0.2);
+  const MAX_SCALE = 1.4;
   const containerRef = useRef<HTMLDivElement>(null);
 
   const pathD = useMemo(() => buildPathD(), []);
 
-  // Au montage : ajuster le zoom à la largeur visible et scroller en bas (N1)
+  // Au montage : calculer le zoom MIN (fit complet du parcours dans la viewport, sans bandes noires)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const s = Math.min(1, (el.clientWidth / VB_W));
-    setScale(s);
-    // scroller tout en bas pour démarrer sur l'étage 1 (N1 en bas à gauche)
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
-      el.scrollLeft = 0;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const compute = () => {
+      const sw = el.clientWidth / VB_W;
+      const sh = el.clientHeight / VB_H;
+      const fit = Math.min(sw, sh);
+      setMinScale(fit);
+      setScale(fit);
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   // Regroupement des élèves par niveau (clamp à VISIBLE_LEVELS)
@@ -479,13 +484,10 @@ const Parcours = () => {
     return m;
   }, [students]);
 
-  // Ajuste à la largeur visible (le scroll vertical permet de monter étage par étage)
-  const fitToScreen = () => {
-    const el = containerRef.current;
-    if (!el) return;
-    const s = Math.min(1.1, el.clientWidth / VB_W);
-    setScale(s);
-  };
+  const clampScale = (s: number) => Math.max(minScale, Math.min(MAX_SCALE, s));
+  const zoomIn = () => setScale((s) => clampScale(s * 1.2));
+  const zoomOut = () => setScale((s) => clampScale(s / 1.2));
+  const fitToScreen = () => setScale(minScale);
 
   if (!cls) {
     return (
