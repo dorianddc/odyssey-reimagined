@@ -355,19 +355,19 @@ const StudentBadge = ({
         animation: `float-orbit 3.5s ease-in-out ${delay}s infinite`,
       }}
     >
-      {/* Badge */}
+      {/* Badge 3D */}
       <div
-        className="grid place-items-center font-bold text-white select-none"
+        className="grid place-items-center font-bold text-white select-none border-2 border-white/30 shadow-md"
         style={{
-          width: 38,
-          height: 38,
+          width: 42,
+          height: 42,
           borderRadius: "50%",
-          background: `radial-gradient(circle at 30% 25%, #ffffff66, transparent 50%), ${color}`,
-          border: "2.5px solid #ffffff",
-          boxShadow: `0 0 0 1.5px #00000055, 0 4px 8px rgba(0,0,0,0.5), 0 0 12px ${color}88`,
-          fontSize: 16,
-          fontFamily: "Barlow, sans-serif",
+          background: `radial-gradient(circle at 30% 22%, #ffffffcc 0%, ${color}ff 45%, ${color} 70%, #00000055 100%)`,
+          boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.45), inset 0 2px 3px rgba(255,255,255,0.55), 0 4px 10px rgba(0,0,0,0.55), 0 0 14px ${color}99`,
+          fontSize: 17,
+          fontFamily: "Lexend, Inter, sans-serif",
           letterSpacing: "0.02em",
+          textShadow: "0 1px 2px rgba(0,0,0,0.6)",
           transition: "transform 0.18s",
         }}
         onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.18)")}
@@ -383,7 +383,7 @@ const StudentBadge = ({
           color: "#ffffff",
           border: `1.5px solid ${color}`,
           boxShadow: `0 0 12px ${color}99, 0 4px 12px rgba(0,0,0,0.6)`,
-          fontFamily: "Barlow, sans-serif",
+          fontFamily: "Lexend, Inter, sans-serif",
           letterSpacing: "0.02em",
         }}
       >
