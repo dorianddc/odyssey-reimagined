@@ -68,5 +68,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <TooltipProvider>
+      <AppStoreProvider>
+        <Outlet />
+        <Toaster />
+      </AppStoreProvider>
+    </TooltipProvider>
+  );
 }
