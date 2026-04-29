@@ -4,27 +4,22 @@ import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/r
 // chemin sinueux horizontal de gauche à droite reliant 22 plateformes rondes,
 // volants SVG évolutifs (8 paliers de qualité), essaim d'élèves avec tooltips.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Maximize2, X } from "lucide-react";
+import { ArrowLeft, Maximize2, Minus, Plus } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
-import { getRankBadge, type Student } from "@/data/curriculum";
-import { Slider } from "@/components/ui/slider";
+import { type Student } from "@/data/curriculum";
 
 // ============================================================================
 // GEOMETRY — canvas vertical : 4 étages de biomes horizontaux superposés
 // Progression : on commence en bas à gauche (N1), on finit en haut à gauche (N22)
 // ============================================================================
 const VISIBLE_LEVELS = 22;
-const VB_W = 2600;            // largeur d'un étage (toute la scène)
-const FLOOR_H = 900;          // hauteur d'un étage
+const VB_W = 2800;            // largeur d'un étage (toute la scène) — large landscape
+const FLOOR_H = 520;          // hauteur d'un étage — compressé verticalement
 const FLOORS = 4;
-const VB_H = FLOOR_H * FLOORS; // 3600 — scroll vertical à travers les 4 biomes
-const PAD_X = 240;
+const VB_H = FLOOR_H * FLOORS; // 2080
+const PAD_X = 140;            // marge latérale réduite (≈95% utilisable)
 
 // Définition des étages (du plus bas niveau au plus haut)
-// floorIndex 0 = ÉTAGE 1 (en bas, N1-N6, gauche→droite)
-// floorIndex 1 = ÉTAGE 2 (N7-N12, droite→gauche)
-// floorIndex 2 = ÉTAGE 3 (N13-N17, gauche→droite)
-// floorIndex 3 = ÉTAGE 4 (en haut, N18-N22, droite→gauche)
 const FLOORS_DEF = [
   { min: 1,  max: 6,  dir: 1  as 1 | -1 },
   { min: 7,  max: 12, dir: -1 as 1 | -1 },
@@ -44,8 +39,7 @@ const nodePos = (level: number) => {
   const fi = floorIndexFor(level);
   const f = FLOORS_DEF[fi];
   const count = f.max - f.min + 1;
-  const localIdx = level - f.min; // 0..count-1
-  // répartition horizontale uniforme
+  const localIdx = level - f.min;
   const t = count === 1 ? 0.5 : localIdx / (count - 1);
   const tDir = f.dir === 1 ? t : 1 - t;
   const x = PAD_X + tDir * (VB_W - 2 * PAD_X);
@@ -53,28 +47,48 @@ const nodePos = (level: number) => {
   return { x, y };
 };
 
-// Chemin : sur chaque étage, ligne horizontale légèrement ondulée ;
-// entre étages, transition verticale en S.
+// Chemin entièrement en Bézier — virages fluides, jamais d'angle droit.
+// Sur un étage : courbe horizontale très douce passant par chaque palier.
+// Entre étages : "loop" en S qui s'enroule (le ruban contourne l'extrémité).
 const buildPathD = () => {
   let d = "";
-  for (let lvl = 1; lvl <= VISIBLE_LEVELS; lvl++) {
-    const p = nodePos(lvl);
-    if (lvl === 1) {
-      d += `M ${p.x} ${p.y}`;
-      continue;
+  for (let fi = 0; fi < FLOORS_DEF.length; fi++) {
+    const f = FLOORS_DEF[fi];
+    // Trace l'étage avec une suite de courbes cubiques douces
+    for (let lvl = f.min; lvl <= f.max; lvl++) {
+      const p = nodePos(lvl);
+      if (lvl === 1) {
+        d += `M ${p.x} ${p.y}`;
+        continue;
+      }
+      if (lvl === f.min) {
+        // Entrée d'étage : on vient de la transition (déjà tracée plus bas)
+        d += ` L ${p.x} ${p.y}`;
+        continue;
+      }
+      const prev = nodePos(lvl - 1);
+      const dx = p.x - prev.x;
+      const wobble = ((lvl % 2 === 0) ? -1 : 1) * 28;
+      // Cubic Bézier symétrique : ondulation douce
+      const c1x = prev.x + dx * 0.35;
+      const c1y = prev.y + wobble;
+      const c2x = prev.x + dx * 0.65;
+      const c2y = p.y - wobble;
+      d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p.x} ${p.y}`;
     }
-    const prev = nodePos(lvl - 1);
-    const fiPrev = floorIndexFor(lvl - 1);
-    const fiCur = floorIndexFor(lvl);
-    if (fiPrev === fiCur) {
-      // même étage : courbe douce horizontale
-      const mx = (prev.x + p.x) / 2;
-      const wobble = ((lvl % 2 === 0) ? -1 : 1) * 24;
-      d += ` C ${mx} ${prev.y + wobble}, ${mx} ${p.y - wobble}, ${p.x} ${p.y}`;
-    } else {
-      // transition verticale entre 2 étages : S très lisible
-      const my = (prev.y + p.y) / 2;
-      d += ` C ${prev.x} ${my}, ${p.x} ${my}, ${p.x} ${p.y}`;
+    // Transition vers l'étage supérieur — boucle en S qui s'enroule
+    if (fi < FLOORS_DEF.length - 1) {
+      const last = nodePos(f.max);
+      const nextF = FLOORS_DEF[fi + 1];
+      const first = nodePos(nextF.min);
+      // Direction de l'enroulement : si l'étage finit à droite, on enroule vers la droite
+      const sideOut = f.dir === 1 ? 1 : -1;     // sort par la droite si dir=1
+      const overshoot = 220 * sideOut;
+      const c1x = last.x + overshoot;
+      const c1y = last.y - 20;
+      const c2x = first.x + overshoot;
+      const c2y = first.y + 20;
+      d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${first.x} ${first.y}`;
     }
   }
   return d;
