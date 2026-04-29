@@ -296,18 +296,20 @@ const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
       {/* Highlight brillant en haut */}
       <ellipse cx="-12" cy="-12" rx={radius * 0.55} ry={radius * 0.12} fill="#ffffff" opacity="0.45" />
 
-      {/* NUMERO du niveau — très lisible et contrasté */}
+      {/* NUMERO du niveau — Lexend Black, parfaitement centré */}
       <text
         x="0"
-        y="9"
+        y="0"
         textAnchor="middle"
-        fontFamily="Bebas Neue, sans-serif"
-        fontSize="46"
+        dominantBaseline="central"
+        fontFamily="Lexend, Inter, sans-serif"
+        fontSize="62"
+        fontWeight="900"
         fill="#ffffff"
         stroke={c.face3}
-        strokeWidth="2"
+        strokeWidth="2.5"
         paintOrder="stroke"
-        style={{ letterSpacing: "0.02em", filter: `drop-shadow(0 2px 0 ${c.face3})` }}
+        style={{ letterSpacing: "-0.02em", filter: `drop-shadow(0 3px 0 ${c.face3})` }}
       >
         {level}
       </text>
@@ -315,10 +317,9 @@ const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
       {/* Niveau en petit en haut */}
       <text
         x="0"
-        y="-radius"
-        dy={-radius * 0.42 + 14}
+        y={-radius * 0.42 + 14}
         textAnchor="middle"
-        fontFamily="Barlow, sans-serif"
+        fontFamily="Lexend, Inter, sans-serif"
         fontSize="11"
         fontWeight="800"
         fill="#ffffff"
