@@ -636,14 +636,18 @@ const Parcours = () => {
                 return (
                   <div
                     key={lvl}
-                    className="absolute -translate-x-1/2"
+                    className="absolute"
                     style={{
                       left: x,
-                      top: y - 170,
+                      top: y - 195,
+                      width: 0,
+                      height: 0,
                       animation: `float-shuttle 3.${(i % 5) + 2}s ease-in-out ${(i % 6) * 0.25}s infinite`,
                     }}
                   >
-                    <Shuttle level={lvl} size={120} />
+                    <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)" }}>
+                      <Shuttle level={lvl} size={130} />
+                    </div>
                   </div>
                 );
               })}
