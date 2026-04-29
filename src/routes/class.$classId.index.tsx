@@ -1,0 +1,329 @@
+// Class roster — grid of student "trading cards", click to open profile.
+import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus } from "lucide-react";
+import { useAppStore } from "@/store/AppStore";
+import { AvatarBlob } from "@/components/game/AvatarBlob";
+import { PopButton } from "@/components/game/PopButton";
+import { getRankBadge, MAX_LEVEL } from "@/data/curriculum";
+import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+} from "@/components/ui/alert-dialog";
+
+export const Route = createFileRoute("/class/$classId/")({
+  component: ClassRoster,
+});
+
+function ClassRoster() {
+  const { classId } = Route.useParams();
+  const navigate = useNavigate();
+  const { classes, studentsByClass, ensureClass, addStudent, removeStudent } = useAppStore();
+  const cls = classes.find((c) => c.id === classId);
+
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<"name" | "level">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [genderFilter, setGenderFilter] = useState<"All" | "F" | "M">("All");
+
+  const [openAdd, setOpenAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newGender, setNewGender] = useState<"F" | "M">("F");
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (classId) ensureClass(classId);
+  }, [classId, ensureClass]);
+
+  const students = studentsByClass[classId] || [];
+  const studentToDelete = students.find((s) => s.id === confirmDel);
+
+  const filtered = useMemo(() => {
+    const list = students
+      .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
+      .filter((s) => genderFilter === "All" || s.gender === genderFilter);
+    list.sort((a, b) => {
+      let va: string | number = a[sortKey];
+      let vb: string | number = b[sortKey];
+      if (typeof va === "string") {
+        va = va.toLowerCase();
+        vb = (vb as string).toLowerCase();
+      }
+      return sortOrder === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
+    });
+    return list;
+  }, [students, search, genderFilter, sortKey, sortOrder]);
+
+  const handleConfirmAdd = () => {
+    if (!newName.trim()) return;
+    addStudent(classId, { name: newName.trim(), gender: newGender });
+    setNewName("");
+    setNewGender("F");
+    setOpenAdd(false);
+  };
+
+  if (!cls) {
+    return (
+      <main className="min-h-screen grid place-items-center p-8">
+        <div className="pop-card p-8 text-center">
+          <p className="font-display text-3xl">Classe introuvable</p>
+          <PopButton variant="primary" onClick={() => navigate({ to: "/" })} className="mt-4">
+            Retour au hub
+          </PopButton>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen pb-20">
+      <header className="sticky top-0 z-20 bg-background/85 backdrop-blur-xl border-b-[3px] border-ink">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex flex-wrap items-center gap-4 justify-between">
+          <div className="flex items-center gap-4">
+            <PopButton variant="ghost" size="sm" onClick={() => navigate({ to: "/" })}>
+              <ArrowLeft size={16} strokeWidth={3} /> Hub
+            </PopButton>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl border-[3px] border-ink bg-gradient-sun grid place-items-center font-display text-xl shadow-pop-sm">
+                {cls.id.slice(0, 3)}
+              </div>
+              <div>
+                <h1 className="font-display text-2xl md:text-3xl leading-none">{cls.name}</h1>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                  {cls.cycle === "cycle3" ? "Cycle 3 · 6ᵉ" : "Cycle 4 · 5ᵉ→3ᵉ"} · {students.length} élèves
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <PopButton variant="accent" size="sm" onClick={() => navigate({ to: "/class/$classId/parcours", params: { classId } })}>
+              <MapIcon size={14} strokeWidth={3} /> Parcours
+            </PopButton>
+            <PopButton variant="primary" size="sm" onClick={() => setOpenAdd(true)}>
+              <UserPlus size={14} strokeWidth={3} /> Élève
+            </PopButton>
+          </div>
+
+          <div className="relative flex-1 min-w-[200px] max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft" size={18} strokeWidth={3} />
+            <input
+              type="text"
+              placeholder="Rechercher un élève..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-surface border-[3px] border-ink rounded-2xl py-3 pl-12 pr-4 text-sm font-semibold placeholder:text-ink-soft/60 focus:outline-none focus:ring-4 focus:ring-primary/40 shadow-pop-sm"
+            />
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pb-4 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">
+            <Filter size={14} strokeWidth={3} /> Tri
+          </span>
+          {([
+            { k: "name", label: "A-Z" },
+            { k: "level", label: "Niveau" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.k}
+              onClick={() => setSortKey(opt.k)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl border-[2.5px] border-ink font-display text-xs tracking-widest transition-all",
+                sortKey === opt.k ? "bg-secondary text-secondary-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <button
+            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+            className="px-2.5 py-1.5 rounded-xl border-[2.5px] border-ink bg-surface hover:bg-surface-2"
+            aria-label="Inverser l'ordre"
+          >
+            {sortOrder === "asc" ? <SortAsc size={14} strokeWidth={3} /> : <SortDesc size={14} strokeWidth={3} />}
+          </button>
+
+          <span className="ml-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">
+            <Users size={14} strokeWidth={3} /> Filtre
+          </span>
+          {(["All", "F", "M"] as const).map((g) => (
+            <button
+              key={g}
+              onClick={() => setGenderFilter(g)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl border-[2.5px] border-ink font-display text-xs tracking-widest transition-all",
+                genderFilter === g
+                  ? g === "F"
+                    ? "bg-hot text-hot-foreground shadow-pop-sm"
+                    : g === "M"
+                      ? "bg-secondary text-secondary-foreground shadow-pop-sm"
+                      : "bg-primary text-primary-foreground shadow-pop-sm"
+                  : "bg-surface hover:bg-surface-2"
+              )}
+            >
+              {g === "All" ? "Tous" : g === "F" ? "Filles" : "Garçons"}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {filtered.map((s, i) => {
+          const rank = getRankBadge(s.level);
+          const pct = Math.min(100, Math.round((s.level / MAX_LEVEL) * 100));
+          return (
+            <div
+              key={s.id}
+              className="pop-card-interactive p-4 text-center group animate-pop-in relative"
+              style={{ animationDelay: `${Math.min(i * 25, 600)}ms` }}
+              onClick={() => navigate({ to: "/class/$classId/student/$studentId", params: { classId, studentId: s.id } })}
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); setConfirmDel(s.id); }}
+                className="absolute top-2 right-2 z-10 w-7 h-7 grid place-items-center rounded-full bg-surface border-[2px] border-ink shadow-pop-sm hover:bg-hot hover:text-hot-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label={`Supprimer ${s.name}`}
+                title="Supprimer l'élève"
+              >
+                <Trash2 size={12} strokeWidth={3} />
+              </button>
+
+              <div className="flex justify-center mb-3">
+                <AvatarBlob name={s.name} hue={s.avatarHue} size={64} rank={rank.tier} />
+              </div>
+              <h3 className="font-display text-lg leading-none truncate">{s.name}</h3>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                {rank.emoji} {rank.label}
+              </span>
+
+              <div className="mt-3 h-2 rounded-full bg-muted border-2 border-ink overflow-hidden">
+                <div className="h-full bg-gradient-sun transition-all" style={{ width: `${pct}%` }} />
+              </div>
+              <div className="mt-1.5 flex justify-between items-center text-[10px] font-bold">
+                <span className="text-ink-soft">N {s.level}</span>
+                <span className="text-primary">/{MAX_LEVEL}</span>
+              </div>
+            </div>
+          );
+        })}
+
+        <button
+          onClick={() => setOpenAdd(true)}
+          className="rounded-[var(--radius)] border-[3px] border-dashed border-ink/40 bg-surface/50 hover:bg-surface hover:border-ink min-h-[195px] grid place-items-center group transition-all hover:shadow-pop-sm"
+        >
+          <div className="text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl border-[3px] border-ink bg-primary text-primary-foreground grid place-items-center shadow-pop-sm group-hover:rotate-90 transition-transform">
+              <Plus size={24} strokeWidth={3} />
+            </div>
+            <p className="mt-2 font-display text-base tracking-wide">Nouvel élève</p>
+          </div>
+        </button>
+
+        {filtered.length === 0 && students.length > 0 && (
+          <div className="col-span-full text-center py-16 font-semibold text-ink-soft">
+            Aucun élève ne correspond à ces filtres.
+          </div>
+        )}
+        {students.length === 0 && (
+          <div className="col-span-full text-center py-16 font-semibold text-ink-soft">
+            Aucun élève dans cette classe. Cliquez sur « Nouvel élève » pour commencer.
+          </div>
+        )}
+      </section>
+
+      <button
+        onClick={() => setOpenAdd(true)}
+        className="fixed bottom-6 right-6 z-30 w-16 h-16 rounded-full bg-primary text-primary-foreground border-[3px] border-ink shadow-pop hover:-translate-y-1 hover:shadow-pop-lg active:translate-y-1 active:shadow-pop-sm transition-all grid place-items-center"
+        aria-label="Ajouter un élève"
+        title="Ajouter un élève"
+      >
+        <UserPlus size={26} strokeWidth={3} />
+      </button>
+
+      <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+        <DialogContent className="bg-surface border-[3px] border-ink shadow-pop rounded-[var(--radius)]">
+          <DialogHeader>
+            <DialogTitle className="font-display text-3xl tracking-wide flex items-center gap-2">
+              <UserPlus className="text-primary" strokeWidth={3} /> Nouvel élève
+            </DialogTitle>
+            <DialogDescription className="font-semibold text-ink-soft">
+              Ajout dans la classe {cls.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-soft block mb-1.5">Prénom</label>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleConfirmAdd()}
+                placeholder="ex. Lucas, Sarah..."
+                className="w-full bg-surface-2 border-[3px] border-ink rounded-2xl py-3 px-4 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-primary/40"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-soft block mb-1.5">Genre</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setNewGender("F")}
+                  className={cn(
+                    "px-3 py-3 rounded-2xl border-[3px] border-ink font-display tracking-wider uppercase text-sm transition-all",
+                    newGender === "F" ? "bg-hot text-hot-foreground shadow-pop-sm" : "bg-surface-2 hover:bg-muted"
+                  )}
+                >
+                  Fille
+                </button>
+                <button
+                  onClick={() => setNewGender("M")}
+                  className={cn(
+                    "px-3 py-3 rounded-2xl border-[3px] border-ink font-display tracking-wider uppercase text-sm transition-all",
+                    newGender === "M" ? "bg-secondary text-secondary-foreground shadow-pop-sm" : "bg-surface-2 hover:bg-muted"
+                  )}
+                >
+                  Garçon
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <PopButton variant="ghost" size="sm" onClick={() => setOpenAdd(false)}>
+              <X size={14} strokeWidth={3} /> Annuler
+            </PopButton>
+            <PopButton variant="primary" size="sm" onClick={handleConfirmAdd} disabled={!newName.trim()}>
+              <Plus size={14} strokeWidth={3} /> Ajouter
+            </PopButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
+        <AlertDialogContent className="bg-surface border-[3px] border-ink shadow-pop rounded-[var(--radius)]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display text-2xl tracking-wide">
+              Supprimer {studentToDelete?.name} ?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-semibold text-ink-soft">
+              Cette action est définitive. Toutes les évaluations de cet élève seront perdues.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-[3px] border-ink rounded-2xl font-display uppercase">Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (confirmDel) removeStudent(classId, confirmDel); setConfirmDel(null); }}
+              className="bg-hot text-hot-foreground border-[3px] border-ink rounded-2xl font-display uppercase shadow-pop-sm"
+            >
+              <Trash2 size={14} strokeWidth={3} className="mr-1.5" /> Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </main>
+  );
+}
