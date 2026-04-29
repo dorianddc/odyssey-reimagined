@@ -1,4 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppStoreProvider } from "@/store/AppStore";
 
 import appCss from "../styles.css?url";
 
@@ -29,11 +32,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Stadium Quest — EPS Badminton" },
-      { name: "description", content: "Plateforme gamifiée de pilotage EPS badminton." },
-      { name: "author", content: "Stadium Quest" },
-      { property: "og:title", content: "Stadium Quest" },
-      { property: "og:description", content: "Pilotage EPS Badminton gamifié" },
+      { title: "Défi Badminton — EPS Cycle 3 & 4" },
+      { name: "description", content: "Suivi gamifié des compétences badminton en EPS — Cycle 3 et Cycle 4." },
+      { name: "author", content: "Défi Badminton" },
+      { property: "og:title", content: "Défi Badminton" },
+      { property: "og:description", content: "Suivi gamifié des compétences badminton en EPS." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -65,5 +68,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <TooltipProvider>
+      <AppStoreProvider>
+        <Outlet />
+        <Toaster />
+      </AppStoreProvider>
+    </TooltipProvider>
+  );
 }
