@@ -267,34 +267,34 @@ const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
       <ellipse cx="0" cy="6" rx={radius + 28} ry={radius * 0.55} fill={c.glow} opacity="0.35" filter="url(#blur-soft)" />
 
       {/* ombre portée au sol */}
-      <ellipse cx="0" cy={radius * 0.42} rx={radius * 1.05} ry={radius * 0.22} fill="#000" opacity="0.45" />
+      <ellipse cx="0" cy={radius * 0.55} rx={radius * 1.1} ry={radius * 0.26} fill="#000" opacity="0.5" />
 
-      {/* Tranche / côté de la pièce (effet 3D) */}
-      <ellipse cx="0" cy={radius * 0.18} rx={radius} ry={radius * 0.42} fill={c.face3} />
+      {/* Tranche / côté de la pièce (effet 3D plus épais) */}
+      <ellipse cx="0" cy={radius * 0.32} rx={radius} ry={radius * 0.46} fill={c.face3} />
       <path
-        d={`M ${-radius} ${radius * 0.18 * 0.3} A ${radius} ${radius * 0.42} 0 0 0 ${radius} ${radius * 0.18 * 0.3} L ${radius} ${radius * 0.18} A ${radius} ${radius * 0.42} 0 0 1 ${-radius} ${radius * 0.18} Z`}
+        d={`M ${-radius} 0 A ${radius} ${radius * 0.46} 0 0 0 ${radius} 0 L ${radius} ${radius * 0.32} A ${radius} ${radius * 0.46} 0 0 1 ${-radius} ${radius * 0.32} Z`}
         fill={c.ring}
       />
 
       {/* Face supérieure principale */}
-      <ellipse cx="0" cy="0" rx={radius} ry={radius * 0.42} fill={c.face2} />
+      <ellipse cx="0" cy="0" rx={radius} ry={radius * 0.46} fill={c.face2} />
       {/* gradient radial via ellipse claire */}
-      <ellipse cx="0" cy="-4" rx={radius * 0.92} ry={radius * 0.36} fill={c.face1} opacity="0.85" />
+      <ellipse cx="0" cy="-4" rx={radius * 0.92} ry={radius * 0.4} fill={c.face1} opacity="0.85" />
 
       {/* anneau extérieur métal */}
-      <ellipse cx="0" cy="0" rx={radius} ry={radius * 0.42} fill="none" stroke={c.ring} strokeWidth="3.5" />
-      <ellipse cx="0" cy="0" rx={radius - 8} ry={radius * 0.42 - 4} fill="none" stroke={c.face3} strokeWidth="1.5" opacity="0.7" />
+      <ellipse cx="0" cy="0" rx={radius} ry={radius * 0.46} fill="none" stroke={c.ring} strokeWidth="4" />
+      <ellipse cx="0" cy="0" rx={radius - 9} ry={radius * 0.46 - 5} fill="none" stroke={c.face3} strokeWidth="1.6" opacity="0.7" />
 
       {/* Reliefs gravés (petits points décoratifs) */}
       {[...Array(12)].map((_, i) => {
         const a = (i / 12) * Math.PI * 2;
-        const px = Math.cos(a) * (radius - 14);
-        const py = Math.sin(a) * (radius * 0.42 - 6);
-        return <circle key={i} cx={px} cy={py} r="1.4" fill={c.face3} opacity="0.55" />;
+        const px = Math.cos(a) * (radius - 16);
+        const py = Math.sin(a) * (radius * 0.46 - 7);
+        return <circle key={i} cx={px} cy={py} r="1.6" fill={c.face3} opacity="0.55" />;
       })}
 
       {/* Highlight brillant en haut */}
-      <ellipse cx="-12" cy="-12" rx={radius * 0.55} ry={radius * 0.12} fill="#ffffff" opacity="0.45" />
+      <ellipse cx="-14" cy="-14" rx={radius * 0.55} ry={radius * 0.13} fill="#ffffff" opacity="0.45" />
 
       {/* NUMERO du niveau — Lexend Black, parfaitement centré */}
       <text
@@ -303,30 +303,15 @@ const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
         textAnchor="middle"
         dominantBaseline="central"
         fontFamily="Lexend, Inter, sans-serif"
-        fontSize="62"
+        fontSize="72"
         fontWeight="900"
         fill="#ffffff"
         stroke={c.face3}
-        strokeWidth="2.5"
+        strokeWidth="3"
         paintOrder="stroke"
         style={{ letterSpacing: "-0.02em", filter: `drop-shadow(0 3px 0 ${c.face3})` }}
       >
         {level}
-      </text>
-
-      {/* Niveau en petit en haut */}
-      <text
-        x="0"
-        y={-radius * 0.42 + 14}
-        textAnchor="middle"
-        fontFamily="Lexend, Inter, sans-serif"
-        fontSize="11"
-        fontWeight="800"
-        fill="#ffffff"
-        opacity="0.85"
-        style={{ letterSpacing: "0.32em" }}
-      >
-        N{level}
       </text>
     </g>
   );
