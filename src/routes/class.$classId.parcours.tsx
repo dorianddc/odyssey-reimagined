@@ -259,7 +259,7 @@ const Shuttle = ({ level, size = 130 }: ShuttleProps) => {
 const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
   const b = biomeFor(level);
   const c = tierColors[b.tier];
-  const radius = 88;
+  const radius = 102;
 
   return (
     <g transform={`translate(${x} ${y})`}>
