@@ -702,8 +702,8 @@ const Parcours = () => {
           50%      { transform: translate(-50%, -50%) translateY(-7px); }
         }
         @keyframes float-shuttle {
-          0%, 100% { transform: translateX(-50%) translateY(0px) rotate(-2deg); }
-          50%      { transform: translateX(-50%) translateY(-14px) rotate(2deg); }
+          0%, 100% { transform: translateY(0px) rotate(-2deg); }
+          50%      { transform: translateY(-14px) rotate(2deg); }
         }
         @keyframes pulse-spotlight {
           0%, 100% { opacity: 0.55; transform: scale(1); }
