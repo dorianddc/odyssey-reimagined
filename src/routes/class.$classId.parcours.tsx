@@ -433,27 +433,38 @@ const Parcours = () => {
 
   const students = studentsByClass[classId] || [];
 
-  // Zoom — bornes calculées dynamiquement (min = fit total, max = vue rapprochée)
-  const [scale, setScale] = useState(0.4);
+  // Zoom — défaut 1 (100%). Min calculé pour fit. Persistant.
+  const [scale, setScale] = useState(1);
   const [minScale, setMinScale] = useState(0.2);
-  const MAX_SCALE = 1.4;
+  const MAX_SCALE = 1.6;
   const containerRef = useRef<HTMLDivElement>(null);
+  const userInteracted = useRef(false);
 
   const pathD = useMemo(() => buildPathD(), []);
 
-  // Au montage : calculer le zoom MIN (fit complet du parcours dans la viewport, sans bandes noires)
+  // Calcule minScale (fit total). Premier passage : applique aussi le fit comme valeur initiale.
+  // Les passages suivants (resize) NE touchent PAS au scale utilisateur.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    let firstRun = true;
     const compute = () => {
       const sw = el.clientWidth / VB_W;
       const sh = el.clientHeight / VB_H;
       const fit = Math.min(sw, sh);
       setMinScale(fit);
-      setScale(fit);
+      if (firstRun && !userInteracted.current) {
+        setScale(fit);
+        firstRun = false;
+      }
     };
     compute();
-    const ro = new ResizeObserver(compute);
+    const ro = new ResizeObserver(() => {
+      // recalculer minScale uniquement, sans écraser la valeur utilisateur
+      const sw = el.clientWidth / VB_W;
+      const sh = el.clientHeight / VB_H;
+      setMinScale(Math.min(sw, sh));
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -470,9 +481,9 @@ const Parcours = () => {
   }, [students]);
 
   const clampScale = (s: number) => Math.max(minScale, Math.min(MAX_SCALE, s));
-  const zoomIn = () => setScale((s) => clampScale(s * 1.2));
-  const zoomOut = () => setScale((s) => clampScale(s / 1.2));
-  const fitToScreen = () => setScale(minScale);
+  const zoomIn = () => { userInteracted.current = true; setScale((s) => clampScale(s + 0.1)); };
+  const zoomOut = () => { userInteracted.current = true; setScale((s) => clampScale(s - 0.1)); };
+  const fitToScreen = () => { userInteracted.current = true; setScale(minScale); };
 
   if (!cls) {
     return (
