@@ -45,8 +45,9 @@ const LS_STUDENTS = "db_students_v1";
 const EMOJI_POOL = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "💎", "🦁", "🐻", "🐯", "🦅", "🐺", "🦄", "🐲", "🌟"];
 
 const loadClasses = (): ClassConfig[] => {
+  if (typeof window === "undefined") return DEFAULT_CLASSES;
   try {
-    const raw = localStorage.getItem(LS_CLASSES);
+    const raw = window.localStorage.getItem(LS_CLASSES);
     if (!raw) return DEFAULT_CLASSES;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length) return parsed;
@@ -57,8 +58,9 @@ const loadClasses = (): ClassConfig[] => {
 };
 
 const loadStudents = (): Record<string, Student[]> => {
+  if (typeof window === "undefined") return {};
   try {
-    const raw = localStorage.getItem(LS_STUDENTS);
+    const raw = window.localStorage.getItem(LS_STUDENTS);
     if (!raw) return {};
     return JSON.parse(raw);
   } catch {
