@@ -532,19 +532,29 @@ const Parcours = () => {
             </span>
           </div>
 
-          {/* Droite : zoom slider + plein écran */}
-          <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-full px-3 py-1.5 backdrop-blur min-w-[220px]">
-            <span className="text-[10px] font-bold tracking-widest text-white/80">ZOOM</span>
-            <Slider
-              value={[scale * 100]}
-              min={20}
-              max={150}
-              step={5}
-              onValueChange={(v) => setScale(v[0] / 100)}
-              className="flex-1"
-            />
-            <span className="text-xs font-bold tabular-nums w-9 text-right text-white">{Math.round(scale * 100)}%</span>
-            <button onClick={fitToScreen} className="w-7 h-7 grid place-items-center rounded-full text-white hover:bg-white/15" title="Plein écran">
+          {/* Droite : boutons +/- + plein écran */}
+          <div className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-2 py-1.5 backdrop-blur">
+            <button
+              onClick={zoomOut}
+              disabled={scale <= minScale + 0.001}
+              className="w-8 h-8 grid place-items-center rounded-full text-white bg-white/5 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              title="Dézoomer"
+            >
+              <Minus size={16} strokeWidth={3} />
+            </button>
+            <span className="text-xs font-bold tabular-nums w-12 text-center text-white" style={{ fontFamily: "Lexend, Inter, sans-serif" }}>
+              {Math.round((scale / MAX_SCALE) * 100)}%
+            </span>
+            <button
+              onClick={zoomIn}
+              disabled={scale >= MAX_SCALE - 0.001}
+              className="w-8 h-8 grid place-items-center rounded-full text-white bg-white/5 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              title="Zoomer"
+            >
+              <Plus size={16} strokeWidth={3} />
+            </button>
+            <div className="w-px h-5 bg-white/20 mx-1" />
+            <button onClick={fitToScreen} className="w-8 h-8 grid place-items-center rounded-full text-white hover:bg-white/15" title="Voir tout">
               <Maximize2 size={14} strokeWidth={3} />
             </button>
           </div>
