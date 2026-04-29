@@ -542,7 +542,7 @@ const Parcours = () => {
             >
               <Minus size={16} strokeWidth={3} />
             </button>
-            <span className="text-xs font-bold tabular-nums w-12 text-center text-white" style={{ fontFamily: "Lexend, Inter, sans-serif" }}>
+            <span suppressHydrationWarning className="text-xs font-bold tabular-nums w-12 text-center text-white" style={{ fontFamily: "Lexend, Inter, sans-serif" }}>
               {Math.round(((scale - minScale) / Math.max(MAX_SCALE - minScale, 0.001)) * 100)}%
             </span>
             <button
