@@ -13,11 +13,11 @@ import { type Student } from "@/data/curriculum";
 // Progression : on commence en bas à gauche (N1), on finit en haut à gauche (N22)
 // ============================================================================
 const VISIBLE_LEVELS = 22;
-const VB_W = 2800;            // largeur d'un étage (toute la scène) — large landscape
-const FLOOR_H = 520;          // hauteur d'un étage — compressé verticalement
+const VB_W = 3200;            // largeur d'un étage (toute la scène) — plus large pour respiration
+const FLOOR_H = 540;          // hauteur d'un étage
 const FLOORS = 4;
-const VB_H = FLOOR_H * FLOORS; // 2080
-const PAD_X = 140;            // marge latérale réduite (≈95% utilisable)
+const VB_H = FLOOR_H * FLOORS; // 2160
+const PAD_X = 320;            // marge latérale large pour que les courbes ne soient pas rognées
 
 // Définition des étages (du plus bas niveau au plus haut)
 const FLOORS_DEF = [
@@ -259,7 +259,7 @@ const Shuttle = ({ level, size = 130 }: ShuttleProps) => {
 const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
   const b = biomeFor(level);
   const c = tierColors[b.tier];
-  const radius = 88;
+  const radius = 102;
 
   return (
     <g transform={`translate(${x} ${y})`}>
@@ -267,34 +267,34 @@ const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
       <ellipse cx="0" cy="6" rx={radius + 28} ry={radius * 0.55} fill={c.glow} opacity="0.35" filter="url(#blur-soft)" />
 
       {/* ombre portée au sol */}
-      <ellipse cx="0" cy={radius * 0.42} rx={radius * 1.05} ry={radius * 0.22} fill="#000" opacity="0.45" />
+      <ellipse cx="0" cy={radius * 0.55} rx={radius * 1.1} ry={radius * 0.26} fill="#000" opacity="0.5" />
 
-      {/* Tranche / côté de la pièce (effet 3D) */}
-      <ellipse cx="0" cy={radius * 0.18} rx={radius} ry={radius * 0.42} fill={c.face3} />
+      {/* Tranche / côté de la pièce (effet 3D plus épais) */}
+      <ellipse cx="0" cy={radius * 0.32} rx={radius} ry={radius * 0.46} fill={c.face3} />
       <path
-        d={`M ${-radius} ${radius * 0.18 * 0.3} A ${radius} ${radius * 0.42} 0 0 0 ${radius} ${radius * 0.18 * 0.3} L ${radius} ${radius * 0.18} A ${radius} ${radius * 0.42} 0 0 1 ${-radius} ${radius * 0.18} Z`}
+        d={`M ${-radius} 0 A ${radius} ${radius * 0.46} 0 0 0 ${radius} 0 L ${radius} ${radius * 0.32} A ${radius} ${radius * 0.46} 0 0 1 ${-radius} ${radius * 0.32} Z`}
         fill={c.ring}
       />
 
       {/* Face supérieure principale */}
-      <ellipse cx="0" cy="0" rx={radius} ry={radius * 0.42} fill={c.face2} />
+      <ellipse cx="0" cy="0" rx={radius} ry={radius * 0.46} fill={c.face2} />
       {/* gradient radial via ellipse claire */}
-      <ellipse cx="0" cy="-4" rx={radius * 0.92} ry={radius * 0.36} fill={c.face1} opacity="0.85" />
+      <ellipse cx="0" cy="-4" rx={radius * 0.92} ry={radius * 0.4} fill={c.face1} opacity="0.85" />
 
       {/* anneau extérieur métal */}
-      <ellipse cx="0" cy="0" rx={radius} ry={radius * 0.42} fill="none" stroke={c.ring} strokeWidth="3.5" />
-      <ellipse cx="0" cy="0" rx={radius - 8} ry={radius * 0.42 - 4} fill="none" stroke={c.face3} strokeWidth="1.5" opacity="0.7" />
+      <ellipse cx="0" cy="0" rx={radius} ry={radius * 0.46} fill="none" stroke={c.ring} strokeWidth="4" />
+      <ellipse cx="0" cy="0" rx={radius - 9} ry={radius * 0.46 - 5} fill="none" stroke={c.face3} strokeWidth="1.6" opacity="0.7" />
 
       {/* Reliefs gravés (petits points décoratifs) */}
       {[...Array(12)].map((_, i) => {
         const a = (i / 12) * Math.PI * 2;
-        const px = Math.cos(a) * (radius - 14);
-        const py = Math.sin(a) * (radius * 0.42 - 6);
-        return <circle key={i} cx={px} cy={py} r="1.4" fill={c.face3} opacity="0.55" />;
+        const px = Math.cos(a) * (radius - 16);
+        const py = Math.sin(a) * (radius * 0.46 - 7);
+        return <circle key={i} cx={px} cy={py} r="1.6" fill={c.face3} opacity="0.55" />;
       })}
 
       {/* Highlight brillant en haut */}
-      <ellipse cx="-12" cy="-12" rx={radius * 0.55} ry={radius * 0.12} fill="#ffffff" opacity="0.45" />
+      <ellipse cx="-14" cy="-14" rx={radius * 0.55} ry={radius * 0.13} fill="#ffffff" opacity="0.45" />
 
       {/* NUMERO du niveau — Lexend Black, parfaitement centré */}
       <text
@@ -303,30 +303,15 @@ const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
         textAnchor="middle"
         dominantBaseline="central"
         fontFamily="Lexend, Inter, sans-serif"
-        fontSize="62"
+        fontSize="72"
         fontWeight="900"
         fill="#ffffff"
         stroke={c.face3}
-        strokeWidth="2.5"
+        strokeWidth="3"
         paintOrder="stroke"
         style={{ letterSpacing: "-0.02em", filter: `drop-shadow(0 3px 0 ${c.face3})` }}
       >
         {level}
-      </text>
-
-      {/* Niveau en petit en haut */}
-      <text
-        x="0"
-        y={-radius * 0.42 + 14}
-        textAnchor="middle"
-        fontFamily="Lexend, Inter, sans-serif"
-        fontSize="11"
-        fontWeight="800"
-        fill="#ffffff"
-        opacity="0.85"
-        style={{ letterSpacing: "0.32em" }}
-      >
-        N{level}
       </text>
     </g>
   );
@@ -370,19 +355,19 @@ const StudentBadge = ({
         animation: `float-orbit 3.5s ease-in-out ${delay}s infinite`,
       }}
     >
-      {/* Badge */}
+      {/* Badge 3D */}
       <div
-        className="grid place-items-center font-bold text-white select-none"
+        className="grid place-items-center font-bold text-white select-none border-2 border-white/30 shadow-md"
         style={{
-          width: 38,
-          height: 38,
+          width: 42,
+          height: 42,
           borderRadius: "50%",
-          background: `radial-gradient(circle at 30% 25%, #ffffff66, transparent 50%), ${color}`,
-          border: "2.5px solid #ffffff",
-          boxShadow: `0 0 0 1.5px #00000055, 0 4px 8px rgba(0,0,0,0.5), 0 0 12px ${color}88`,
-          fontSize: 16,
-          fontFamily: "Barlow, sans-serif",
+          background: `radial-gradient(circle at 30% 22%, #ffffffcc 0%, ${color}ff 45%, ${color} 70%, #00000055 100%)`,
+          boxShadow: `inset 0 -3px 6px rgba(0,0,0,0.45), inset 0 2px 3px rgba(255,255,255,0.55), 0 4px 10px rgba(0,0,0,0.55), 0 0 14px ${color}99`,
+          fontSize: 17,
+          fontFamily: "Lexend, Inter, sans-serif",
           letterSpacing: "0.02em",
+          textShadow: "0 1px 2px rgba(0,0,0,0.6)",
           transition: "transform 0.18s",
         }}
         onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.18)")}
@@ -398,7 +383,7 @@ const StudentBadge = ({
           color: "#ffffff",
           border: `1.5px solid ${color}`,
           boxShadow: `0 0 12px ${color}99, 0 4px 12px rgba(0,0,0,0.6)`,
-          fontFamily: "Barlow, sans-serif",
+          fontFamily: "Lexend, Inter, sans-serif",
           letterSpacing: "0.02em",
         }}
       >
@@ -448,27 +433,38 @@ const Parcours = () => {
 
   const students = studentsByClass[classId] || [];
 
-  // Zoom — bornes calculées dynamiquement (min = fit total, max = vue rapprochée)
-  const [scale, setScale] = useState(0.4);
+  // Zoom — défaut 1 (100%). Min calculé pour fit. Persistant.
+  const [scale, setScale] = useState(1);
   const [minScale, setMinScale] = useState(0.2);
-  const MAX_SCALE = 1.4;
+  const MAX_SCALE = 1.6;
   const containerRef = useRef<HTMLDivElement>(null);
+  const userInteracted = useRef(false);
 
   const pathD = useMemo(() => buildPathD(), []);
 
-  // Au montage : calculer le zoom MIN (fit complet du parcours dans la viewport, sans bandes noires)
+  // Calcule minScale (fit total). Premier passage : applique aussi le fit comme valeur initiale.
+  // Les passages suivants (resize) NE touchent PAS au scale utilisateur.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    let firstRun = true;
     const compute = () => {
       const sw = el.clientWidth / VB_W;
       const sh = el.clientHeight / VB_H;
       const fit = Math.min(sw, sh);
       setMinScale(fit);
-      setScale(fit);
+      if (firstRun && !userInteracted.current) {
+        setScale(fit);
+        firstRun = false;
+      }
     };
     compute();
-    const ro = new ResizeObserver(compute);
+    const ro = new ResizeObserver(() => {
+      // recalculer minScale uniquement, sans écraser la valeur utilisateur
+      const sw = el.clientWidth / VB_W;
+      const sh = el.clientHeight / VB_H;
+      setMinScale(Math.min(sw, sh));
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -485,9 +481,9 @@ const Parcours = () => {
   }, [students]);
 
   const clampScale = (s: number) => Math.max(minScale, Math.min(MAX_SCALE, s));
-  const zoomIn = () => setScale((s) => clampScale(s * 1.2));
-  const zoomOut = () => setScale((s) => clampScale(s / 1.2));
-  const fitToScreen = () => setScale(minScale);
+  const zoomIn = () => { userInteracted.current = true; setScale((s) => clampScale(s + 0.1)); };
+  const zoomOut = () => { userInteracted.current = true; setScale((s) => clampScale(s - 0.1)); };
+  const fitToScreen = () => { userInteracted.current = true; setScale(minScale); };
 
   if (!cls) {
     return (
@@ -543,7 +539,7 @@ const Parcours = () => {
               <Minus size={16} strokeWidth={3} />
             </button>
             <span suppressHydrationWarning className="text-xs font-bold tabular-nums w-12 text-center text-white" style={{ fontFamily: "Lexend, Inter, sans-serif" }}>
-              {Math.round(((scale - minScale) / Math.max(MAX_SCALE - minScale, 0.001)) * 100)}%
+              {Math.round(scale * 100)}%
             </span>
             <button
               onClick={zoomIn}
@@ -640,14 +636,18 @@ const Parcours = () => {
                 return (
                   <div
                     key={lvl}
-                    className="absolute -translate-x-1/2"
+                    className="absolute"
                     style={{
                       left: x,
-                      top: y - 170,
+                      top: y - 195,
+                      width: 0,
+                      height: 0,
                       animation: `float-shuttle 3.${(i % 5) + 2}s ease-in-out ${(i % 6) * 0.25}s infinite`,
                     }}
                   >
-                    <Shuttle level={lvl} size={120} />
+                    <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)" }}>
+                      <Shuttle level={lvl} size={130} />
+                    </div>
                   </div>
                 );
               })}
@@ -702,8 +702,8 @@ const Parcours = () => {
           50%      { transform: translate(-50%, -50%) translateY(-7px); }
         }
         @keyframes float-shuttle {
-          0%, 100% { transform: translateX(-50%) translateY(0px) rotate(-2deg); }
-          50%      { transform: translateX(-50%) translateY(-14px) rotate(2deg); }
+          0%, 100% { transform: translateY(0px) rotate(-2deg); }
+          50%      { transform: translateY(-14px) rotate(2deg); }
         }
         @keyframes pulse-spotlight {
           0%, 100% { opacity: 0.55; transform: scale(1); }
