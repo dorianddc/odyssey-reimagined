@@ -570,12 +570,14 @@ const Parcours = () => {
           background: "radial-gradient(ellipse at center, hsl(230 50% 9%) 0%, hsl(230 60% 4%) 100%)",
         }}
       >
-        {/* Conteneur scalé à la taille réelle pour bien gérer le scroll */}
+        {/* Conteneur scalé — centré quand plus petit que la viewport */}
         <div
-          className="relative origin-top-left"
+          className="relative mx-auto my-auto origin-top-left"
           style={{
             width: VB_W * scale,
             height: VB_H * scale,
+            minWidth: "100%",
+            minHeight: "100%",
           }}
         >
           <div
