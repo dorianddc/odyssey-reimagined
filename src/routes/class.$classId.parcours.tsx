@@ -13,11 +13,11 @@ import { type Student } from "@/data/curriculum";
 // Progression : on commence en bas à gauche (N1), on finit en haut à gauche (N22)
 // ============================================================================
 const VISIBLE_LEVELS = 22;
-const VB_W = 2800;            // largeur d'un étage (toute la scène) — large landscape
-const FLOOR_H = 520;          // hauteur d'un étage — compressé verticalement
+const VB_W = 3200;            // largeur d'un étage (toute la scène) — plus large pour respiration
+const FLOOR_H = 540;          // hauteur d'un étage
 const FLOORS = 4;
-const VB_H = FLOOR_H * FLOORS; // 2080
-const PAD_X = 140;            // marge latérale réduite (≈95% utilisable)
+const VB_H = FLOOR_H * FLOORS; // 2160
+const PAD_X = 320;            // marge latérale large pour que les courbes ne soient pas rognées
 
 // Définition des étages (du plus bas niveau au plus haut)
 const FLOORS_DEF = [
