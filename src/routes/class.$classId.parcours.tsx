@@ -4,27 +4,22 @@ import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/r
 // chemin sinueux horizontal de gauche à droite reliant 22 plateformes rondes,
 // volants SVG évolutifs (8 paliers de qualité), essaim d'élèves avec tooltips.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Maximize2, X } from "lucide-react";
+import { ArrowLeft, Maximize2, Minus, Plus } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
-import { getRankBadge, type Student } from "@/data/curriculum";
-import { Slider } from "@/components/ui/slider";
+import { type Student } from "@/data/curriculum";
 
 // ============================================================================
 // GEOMETRY — canvas vertical : 4 étages de biomes horizontaux superposés
 // Progression : on commence en bas à gauche (N1), on finit en haut à gauche (N22)
 // ============================================================================
 const VISIBLE_LEVELS = 22;
-const VB_W = 2600;            // largeur d'un étage (toute la scène)
-const FLOOR_H = 900;          // hauteur d'un étage
+const VB_W = 2800;            // largeur d'un étage (toute la scène) — large landscape
+const FLOOR_H = 520;          // hauteur d'un étage — compressé verticalement
 const FLOORS = 4;
-const VB_H = FLOOR_H * FLOORS; // 3600 — scroll vertical à travers les 4 biomes
-const PAD_X = 240;
+const VB_H = FLOOR_H * FLOORS; // 2080
+const PAD_X = 140;            // marge latérale réduite (≈95% utilisable)
 
 // Définition des étages (du plus bas niveau au plus haut)
-// floorIndex 0 = ÉTAGE 1 (en bas, N1-N6, gauche→droite)
-// floorIndex 1 = ÉTAGE 2 (N7-N12, droite→gauche)
-// floorIndex 2 = ÉTAGE 3 (N13-N17, gauche→droite)
-// floorIndex 3 = ÉTAGE 4 (en haut, N18-N22, droite→gauche)
 const FLOORS_DEF = [
   { min: 1,  max: 6,  dir: 1  as 1 | -1 },
   { min: 7,  max: 12, dir: -1 as 1 | -1 },
@@ -44,8 +39,7 @@ const nodePos = (level: number) => {
   const fi = floorIndexFor(level);
   const f = FLOORS_DEF[fi];
   const count = f.max - f.min + 1;
-  const localIdx = level - f.min; // 0..count-1
-  // répartition horizontale uniforme
+  const localIdx = level - f.min;
   const t = count === 1 ? 0.5 : localIdx / (count - 1);
   const tDir = f.dir === 1 ? t : 1 - t;
   const x = PAD_X + tDir * (VB_W - 2 * PAD_X);
@@ -53,28 +47,48 @@ const nodePos = (level: number) => {
   return { x, y };
 };
 
-// Chemin : sur chaque étage, ligne horizontale légèrement ondulée ;
-// entre étages, transition verticale en S.
+// Chemin entièrement en Bézier — virages fluides, jamais d'angle droit.
+// Sur un étage : courbe horizontale très douce passant par chaque palier.
+// Entre étages : "loop" en S qui s'enroule (le ruban contourne l'extrémité).
 const buildPathD = () => {
   let d = "";
-  for (let lvl = 1; lvl <= VISIBLE_LEVELS; lvl++) {
-    const p = nodePos(lvl);
-    if (lvl === 1) {
-      d += `M ${p.x} ${p.y}`;
-      continue;
+  for (let fi = 0; fi < FLOORS_DEF.length; fi++) {
+    const f = FLOORS_DEF[fi];
+    // Trace l'étage avec une suite de courbes cubiques douces
+    for (let lvl = f.min; lvl <= f.max; lvl++) {
+      const p = nodePos(lvl);
+      if (lvl === 1) {
+        d += `M ${p.x} ${p.y}`;
+        continue;
+      }
+      if (lvl === f.min) {
+        // Entrée d'étage : on vient de la transition (déjà tracée plus bas)
+        d += ` L ${p.x} ${p.y}`;
+        continue;
+      }
+      const prev = nodePos(lvl - 1);
+      const dx = p.x - prev.x;
+      const wobble = ((lvl % 2 === 0) ? -1 : 1) * 28;
+      // Cubic Bézier symétrique : ondulation douce
+      const c1x = prev.x + dx * 0.35;
+      const c1y = prev.y + wobble;
+      const c2x = prev.x + dx * 0.65;
+      const c2y = p.y - wobble;
+      d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p.x} ${p.y}`;
     }
-    const prev = nodePos(lvl - 1);
-    const fiPrev = floorIndexFor(lvl - 1);
-    const fiCur = floorIndexFor(lvl);
-    if (fiPrev === fiCur) {
-      // même étage : courbe douce horizontale
-      const mx = (prev.x + p.x) / 2;
-      const wobble = ((lvl % 2 === 0) ? -1 : 1) * 24;
-      d += ` C ${mx} ${prev.y + wobble}, ${mx} ${p.y - wobble}, ${p.x} ${p.y}`;
-    } else {
-      // transition verticale entre 2 étages : S très lisible
-      const my = (prev.y + p.y) / 2;
-      d += ` C ${prev.x} ${my}, ${p.x} ${my}, ${p.x} ${p.y}`;
+    // Transition vers l'étage supérieur — boucle en S qui s'enroule
+    if (fi < FLOORS_DEF.length - 1) {
+      const last = nodePos(f.max);
+      const nextF = FLOORS_DEF[fi + 1];
+      const first = nodePos(nextF.min);
+      // Direction de l'enroulement : si l'étage finit à droite, on enroule vers la droite
+      const sideOut = f.dir === 1 ? 1 : -1;     // sort par la droite si dir=1
+      const overshoot = 220 * sideOut;
+      const c1x = last.x + overshoot;
+      const c1y = last.y - 20;
+      const c2x = first.x + overshoot;
+      const c2y = first.y + 20;
+      d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${first.x} ${first.y}`;
     }
   }
   return d;
@@ -282,18 +296,20 @@ const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
       {/* Highlight brillant en haut */}
       <ellipse cx="-12" cy="-12" rx={radius * 0.55} ry={radius * 0.12} fill="#ffffff" opacity="0.45" />
 
-      {/* NUMERO du niveau — très lisible et contrasté */}
+      {/* NUMERO du niveau — Lexend Black, parfaitement centré */}
       <text
         x="0"
-        y="9"
+        y="0"
         textAnchor="middle"
-        fontFamily="Bebas Neue, sans-serif"
-        fontSize="46"
+        dominantBaseline="central"
+        fontFamily="Lexend, Inter, sans-serif"
+        fontSize="62"
+        fontWeight="900"
         fill="#ffffff"
         stroke={c.face3}
-        strokeWidth="2"
+        strokeWidth="2.5"
         paintOrder="stroke"
-        style={{ letterSpacing: "0.02em", filter: `drop-shadow(0 2px 0 ${c.face3})` }}
+        style={{ letterSpacing: "-0.02em", filter: `drop-shadow(0 3px 0 ${c.face3})` }}
       >
         {level}
       </text>
@@ -301,10 +317,9 @@ const Platform = ({ level, x, y }: { level: number; x: number; y: number }) => {
       {/* Niveau en petit en haut */}
       <text
         x="0"
-        y="-radius"
-        dy={-radius * 0.42 + 14}
+        y={-radius * 0.42 + 14}
         textAnchor="middle"
-        fontFamily="Barlow, sans-serif"
+        fontFamily="Lexend, Inter, sans-serif"
         fontSize="11"
         fontWeight="800"
         fill="#ffffff"
@@ -433,24 +448,29 @@ const Parcours = () => {
 
   const students = studentsByClass[classId] || [];
 
-  // Zoom — initialisé à 50% comme demandé
-  const [scale, setScale] = useState(0.5);
+  // Zoom — bornes calculées dynamiquement (min = fit total, max = vue rapprochée)
+  const [scale, setScale] = useState(0.4);
+  const [minScale, setMinScale] = useState(0.2);
+  const MAX_SCALE = 1.4;
   const containerRef = useRef<HTMLDivElement>(null);
 
   const pathD = useMemo(() => buildPathD(), []);
 
-  // Au montage : ajuster le zoom à la largeur visible et scroller en bas (N1)
+  // Au montage : calculer le zoom MIN (fit complet du parcours dans la viewport, sans bandes noires)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const s = Math.min(1, (el.clientWidth / VB_W));
-    setScale(s);
-    // scroller tout en bas pour démarrer sur l'étage 1 (N1 en bas à gauche)
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
-      el.scrollLeft = 0;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const compute = () => {
+      const sw = el.clientWidth / VB_W;
+      const sh = el.clientHeight / VB_H;
+      const fit = Math.min(sw, sh);
+      setMinScale(fit);
+      setScale(fit);
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   // Regroupement des élèves par niveau (clamp à VISIBLE_LEVELS)
@@ -464,13 +484,10 @@ const Parcours = () => {
     return m;
   }, [students]);
 
-  // Ajuste à la largeur visible (le scroll vertical permet de monter étage par étage)
-  const fitToScreen = () => {
-    const el = containerRef.current;
-    if (!el) return;
-    const s = Math.min(1.1, el.clientWidth / VB_W);
-    setScale(s);
-  };
+  const clampScale = (s: number) => Math.max(minScale, Math.min(MAX_SCALE, s));
+  const zoomIn = () => setScale((s) => clampScale(s * 1.2));
+  const zoomOut = () => setScale((s) => clampScale(s / 1.2));
+  const fitToScreen = () => setScale(minScale);
 
   if (!cls) {
     return (
@@ -515,44 +532,55 @@ const Parcours = () => {
             </span>
           </div>
 
-          {/* Droite : zoom slider + plein écran */}
-          <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-full px-3 py-1.5 backdrop-blur min-w-[220px]">
-            <span className="text-[10px] font-bold tracking-widest text-white/80">ZOOM</span>
-            <Slider
-              value={[scale * 100]}
-              min={20}
-              max={150}
-              step={5}
-              onValueChange={(v) => setScale(v[0] / 100)}
-              className="flex-1"
-            />
-            <span className="text-xs font-bold tabular-nums w-9 text-right text-white">{Math.round(scale * 100)}%</span>
-            <button onClick={fitToScreen} className="w-7 h-7 grid place-items-center rounded-full text-white hover:bg-white/15" title="Plein écran">
+          {/* Droite : boutons +/- + plein écran */}
+          <div className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-2 py-1.5 backdrop-blur">
+            <button
+              onClick={zoomOut}
+              disabled={scale <= minScale + 0.001}
+              className="w-8 h-8 grid place-items-center rounded-full text-white bg-white/5 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              title="Dézoomer"
+            >
+              <Minus size={16} strokeWidth={3} />
+            </button>
+            <span suppressHydrationWarning className="text-xs font-bold tabular-nums w-12 text-center text-white" style={{ fontFamily: "Lexend, Inter, sans-serif" }}>
+              {Math.round(((scale - minScale) / Math.max(MAX_SCALE - minScale, 0.001)) * 100)}%
+            </span>
+            <button
+              onClick={zoomIn}
+              disabled={scale >= MAX_SCALE - 0.001}
+              className="w-8 h-8 grid place-items-center rounded-full text-white bg-white/5 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              title="Zoomer"
+            >
+              <Plus size={16} strokeWidth={3} />
+            </button>
+            <div className="w-px h-5 bg-white/20 mx-1" />
+            <button onClick={fitToScreen} className="w-8 h-8 grid place-items-center rounded-full text-white hover:bg-white/15" title="Voir tout">
               <Maximize2 size={14} strokeWidth={3} />
             </button>
           </div>
         </div>
       </header>
 
-      {/* ====== CANVAS DEFILANT (overflow-auto, pas de pan/drag) ====== */}
+      {/* ====== CANVAS DEFILANT ====== */}
       <div
         ref={containerRef}
         className="relative flex-1 overflow-auto"
         style={{
-          // pattern de fond très sombre uniforme — biomes prennent le relais dans le canvas
           background: "radial-gradient(ellipse at center, hsl(230 50% 9%) 0%, hsl(230 60% 4%) 100%)",
         }}
       >
-        {/* Conteneur scalé à la taille réelle pour bien gérer le scroll */}
+        {/* Wrapper centrant : flex pour centrer le canvas quand il est plus petit que la viewport */}
         <div
-          className="relative origin-top-left"
+          className="flex items-center justify-center"
           style={{
-            width: VB_W * scale,
-            height: VB_H * scale,
+            minWidth: "100%",
+            minHeight: "100%",
+            width: Math.max(VB_W * scale, 0),
+            height: Math.max(VB_H * scale, 0),
           }}
         >
           <div
-            className="absolute top-0 left-0 origin-top-left"
+            className="relative origin-center shrink-0"
             style={{
               width: VB_W,
               height: VB_H,
