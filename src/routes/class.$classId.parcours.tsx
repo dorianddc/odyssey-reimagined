@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/react-router";
-export const Route = createFileRoute("/class/$classId/parcours")({ component: Parcours });
 // Parcours — "Odyssée du Volant" : reproduction fidèle de l'image de référence.
 // 4 biomes horizontaux fondus (Gymnase → Régionale → Mondiale → Panthéon),
 // chemin sinueux horizontal de gauche à droite reliant 22 plateformes rondes,
@@ -979,3 +978,5 @@ const BiomePantheon = () => (
 );
 
 
+
+export const Route = createFileRoute("/class/$classId/parcours")({ component: Parcours });

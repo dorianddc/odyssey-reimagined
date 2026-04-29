@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/react-router";
-export const Route = createFileRoute("/class/$classId/student/$studentId")({ component: StudentProfile });
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2 } from "lucide-react";
@@ -347,3 +346,5 @@ const StudentProfile = () => {
 };
 
 
+
+export const Route = createFileRoute("/class/$classId/student/$studentId")({ component: StudentProfile });
