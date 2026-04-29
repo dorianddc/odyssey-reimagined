@@ -561,27 +561,26 @@ const Parcours = () => {
         </div>
       </header>
 
-      {/* ====== CANVAS DEFILANT (overflow-auto, pas de pan/drag) ====== */}
+      {/* ====== CANVAS DEFILANT ====== */}
       <div
         ref={containerRef}
         className="relative flex-1 overflow-auto"
         style={{
-          // pattern de fond très sombre uniforme — biomes prennent le relais dans le canvas
           background: "radial-gradient(ellipse at center, hsl(230 50% 9%) 0%, hsl(230 60% 4%) 100%)",
         }}
       >
-        {/* Conteneur scalé — centré quand plus petit que la viewport */}
+        {/* Wrapper centrant : flex pour centrer le canvas quand il est plus petit que la viewport */}
         <div
-          className="relative mx-auto my-auto origin-top-left"
+          className="flex items-center justify-center"
           style={{
-            width: VB_W * scale,
-            height: VB_H * scale,
             minWidth: "100%",
             minHeight: "100%",
+            width: Math.max(VB_W * scale, 0),
+            height: Math.max(VB_H * scale, 0),
           }}
         >
           <div
-            className="absolute top-0 left-0 origin-top-left"
+            className="relative origin-center shrink-0"
             style={{
               width: VB_W,
               height: VB_H,
