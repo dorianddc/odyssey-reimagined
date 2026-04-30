@@ -4,9 +4,12 @@ import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/r
 // chemin sinueux horizontal de gauche à droite reliant 22 plateformes rondes,
 // volants SVG évolutifs (8 paliers de qualité), essaim d'élèves avec tooltips.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Maximize2, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Maximize2, Minus, Plus, Volume2, VolumeX } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { type Student } from "@/data/curriculum";
+import { useAudio } from "@/lib/audio";
+
+const FOCUS_KEY = "odyssey_focus_student";
 
 // ============================================================================
 // GEOMETRY — canvas vertical : 4 étages de biomes horizontaux superposés
@@ -334,13 +337,14 @@ const palette = [
 const colorForName = (name: string) => palette[name.charCodeAt(0) % palette.length];
 
 const StudentBadge = ({
-  student, x, y, delay, onClick,
+  student, x, y, delay, onClick, onHover,
 }: {
   student: Student;
   x: number;
   y: number;
   delay: number;
   onClick: () => void;
+  onHover?: () => void;
 }) => {
   const color = colorForName(student.name);
   const initial = student.name[0].toUpperCase();
@@ -348,6 +352,7 @@ const StudentBadge = ({
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       onPointerDown={(e) => e.stopPropagation()}
+      onMouseEnter={onHover}
       className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 group"
       style={{
         left: x,
@@ -423,29 +428,38 @@ const swarmPositions = (count: number, cx: number, cy: number) => {
 // ============================================================================
 const Parcours = () => {
   const { classId } = Route.useParams();
-  const navigate = useTanstackNavigate(); const goStudent = (sid: string) => navigate({ to: "/class/$classId/student/$studentId", params: { classId, studentId: sid } }); const goBack = () => navigate({ to: "/class/$classId", params: { classId } }); const goHome = () => navigate({ to: "/" });
+  const navigate = useTanstackNavigate();
   const { classes, studentsByClass, ensureClass } = useAppStore();
+  const { muted, toggleMute, setBgm, playSfx } = useAudio();
   const cls = classes.find((c) => c.id === classId);
+  const goStudent = (sid: string) => { playSfx("click"); navigate({ to: "/class/$classId/student/$studentId", params: { classId, studentId: sid } }); };
+  const goBack = () => navigate({ to: "/class/$classId", params: { classId } });
+  const goHome = () => navigate({ to: "/" });
 
   useEffect(() => {
     if (classId) ensureClass(classId);
   }, [classId, ensureClass]);
 
+  // Background music: Odyssey track on mount
+  useEffect(() => {
+    setBgm("odyssey");
+  }, [setBgm]);
+
   const students = studentsByClass[classId] || [];
 
-  // Zoom — défaut 1 (100%). Min calculé pour fit. Persistant.
+  // ---- Zoom & Pan state ----
   const [scale, setScale] = useState(1);
   const [minScale, setMinScale] = useState(0.2);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const MAX_SCALE = 1.6;
-  const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const userInteracted = useRef(false);
 
   const pathD = useMemo(() => buildPathD(), []);
 
-  // Calcule minScale (fit total). Premier passage : applique aussi le fit comme valeur initiale.
-  // Les passages suivants (resize) NE touchent PAS au scale utilisateur.
+  // Compute minScale (fit-to-screen). On first run, fit AND center.
   useEffect(() => {
-    const el = containerRef.current;
+    const el = viewportRef.current;
     if (!el) return;
     let firstRun = true;
     const compute = () => {
@@ -454,22 +468,62 @@ const Parcours = () => {
       const fit = Math.min(sw, sh);
       setMinScale(fit);
       if (firstRun && !userInteracted.current) {
-        setScale(fit);
         firstRun = false;
+        // Check if we're returning from a student profile
+        const focusId = typeof window !== "undefined" ? sessionStorage.getItem(FOCUS_KEY) : null;
+        if (focusId) {
+          sessionStorage.removeItem(FOCUS_KEY);
+          const stu = (studentsByClass[classId] || []).find((s) => s.id === focusId);
+          if (stu) {
+            const lvl = Math.max(1, Math.min(VISIBLE_LEVELS, stu.level));
+            const { x, y } = nodePos(lvl);
+            const targetScale = Math.max(fit, 0.5);
+            setScale(targetScale);
+            // center the platform in viewport
+            setPan({
+              x: el.clientWidth / 2 - x * targetScale,
+              y: el.clientHeight / 2 - y * targetScale,
+            });
+            return;
+          }
+        }
+        setScale(fit);
+        setPan({
+          x: (el.clientWidth - VB_W * fit) / 2,
+          y: (el.clientHeight - VB_H * fit) / 2,
+        });
       }
     };
     compute();
     const ro = new ResizeObserver(() => {
-      // recalculer minScale uniquement, sans écraser la valeur utilisateur
       const sw = el.clientWidth / VB_W;
       const sh = el.clientHeight / VB_H;
       setMinScale(Math.min(sw, sh));
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId]);
 
-  // Regroupement des élèves par niveau (clamp à VISIBLE_LEVELS)
+  // Clamp pan so the canvas can't fly out of sight (keep at least some overlap)
+  const clampPan = (p: { x: number; y: number }, s: number) => {
+    const el = viewportRef.current;
+    if (!el) return p;
+    const cw = VB_W * s;
+    const ch = VB_H * s;
+    const vw = el.clientWidth;
+    const vh = el.clientHeight;
+    // Allow centering when canvas smaller than viewport
+    const minX = Math.min(0, vw - cw);
+    const maxX = Math.max(0, vw - cw);
+    const minY = Math.min(0, vh - ch);
+    const maxY = Math.max(0, vh - ch);
+    return {
+      x: Math.max(minX, Math.min(maxX, p.x)),
+      y: Math.max(minY, Math.min(maxY, p.y)),
+    };
+  };
+
   const byLevel = useMemo(() => {
     const m = new Map<number, Student[]>();
     for (const s of students) {
@@ -481,9 +535,73 @@ const Parcours = () => {
   }, [students]);
 
   const clampScale = (s: number) => Math.max(minScale, Math.min(MAX_SCALE, s));
-  const zoomIn = () => { userInteracted.current = true; setScale((s) => clampScale(s + 0.1)); };
-  const zoomOut = () => { userInteracted.current = true; setScale((s) => clampScale(s - 0.1)); };
-  const fitToScreen = () => { userInteracted.current = true; setScale(minScale); };
+
+  // Zoom centered on viewport center
+  const zoomBy = (delta: number) => {
+    userInteracted.current = true;
+    playSfx("zoom");
+    const el = viewportRef.current;
+    if (!el) { setScale((s) => clampScale(s + delta)); return; }
+    const cx = el.clientWidth / 2;
+    const cy = el.clientHeight / 2;
+    setScale((s) => {
+      const ns = clampScale(s + delta);
+      const ratio = ns / s;
+      setPan((p) => clampPan({
+        x: cx - (cx - p.x) * ratio,
+        y: cy - (cy - p.y) * ratio,
+      }, ns));
+      return ns;
+    });
+  };
+  const zoomIn = () => zoomBy(0.1);
+  const zoomOut = () => zoomBy(-0.1);
+  const fitToScreen = () => {
+    userInteracted.current = true;
+    playSfx("zoom");
+    const el = viewportRef.current;
+    setScale(minScale);
+    if (el) {
+      setPan({
+        x: (el.clientWidth - VB_W * minScale) / 2,
+        y: (el.clientHeight - VB_H * minScale) / 2,
+      });
+    }
+  };
+
+  // ---- Drag-to-pan ----
+  const dragRef = useRef<{ active: boolean; startX: number; startY: number; panX: number; panY: number; pointerId: number | null }>({
+    active: false, startX: 0, startY: 0, panX: 0, panY: 0, pointerId: null,
+  });
+  const [isDragging, setIsDragging] = useState(false);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    // Only left-button / touch / pen
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    userInteracted.current = true;
+    dragRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
+      pointerId: e.pointerId,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setIsDragging(true);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current.active) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    setPan(clampPan({ x: dragRef.current.panX + dx, y: dragRef.current.panY + dy }, scale));
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!dragRef.current.active) return;
+    dragRef.current.active = false;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
+    setIsDragging(false);
+  };
 
   if (!cls) {
     return (
@@ -503,7 +621,7 @@ const Parcours = () => {
         <div className="px-4 md:px-8 py-3 flex items-center gap-4 justify-between">
           {/* Gauche */}
           <button
-            onClick={() => goBack()}
+            onClick={() => { playSfx("click"); goBack(); }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold transition"
           >
             <ArrowLeft size={16} strokeWidth={3} />
@@ -528,169 +646,173 @@ const Parcours = () => {
             </span>
           </div>
 
-          {/* Droite : boutons +/- + plein écran */}
-          <div className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-2 py-1.5 backdrop-blur">
+          <div className="flex items-center gap-2">
+            {/* Audio toggle */}
             <button
-              onClick={zoomOut}
-              disabled={scale <= minScale + 0.001}
-              className="w-8 h-8 grid place-items-center rounded-full text-white bg-white/5 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
-              title="Dézoomer"
+              onClick={toggleMute}
+              className="w-10 h-10 grid place-items-center rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white transition"
+              title={muted ? "Activer le son" : "Couper le son"}
+              aria-label="Toggle audio"
             >
-              <Minus size={16} strokeWidth={3} />
+              {muted ? <VolumeX size={16} strokeWidth={3} /> : <Volume2 size={16} strokeWidth={3} />}
             </button>
-            <span suppressHydrationWarning className="text-xs font-bold tabular-nums w-12 text-center text-white" style={{ fontFamily: "Lexend, Inter, sans-serif" }}>
-              {Math.round(scale * 100)}%
-            </span>
-            <button
-              onClick={zoomIn}
-              disabled={scale >= MAX_SCALE - 0.001}
-              className="w-8 h-8 grid place-items-center rounded-full text-white bg-white/5 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
-              title="Zoomer"
-            >
-              <Plus size={16} strokeWidth={3} />
-            </button>
-            <div className="w-px h-5 bg-white/20 mx-1" />
-            <button onClick={fitToScreen} className="w-8 h-8 grid place-items-center rounded-full text-white hover:bg-white/15" title="Voir tout">
-              <Maximize2 size={14} strokeWidth={3} />
-            </button>
+
+            {/* Zoom */}
+            <div className="flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-2 py-1.5 backdrop-blur">
+              <button
+                onClick={zoomOut}
+                disabled={scale <= minScale + 0.001}
+                className="w-8 h-8 grid place-items-center rounded-full text-white bg-white/5 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                title="Dézoomer"
+              >
+                <Minus size={16} strokeWidth={3} />
+              </button>
+              <span suppressHydrationWarning className="text-xs font-bold tabular-nums w-12 text-center text-white" style={{ fontFamily: "Lexend, Inter, sans-serif" }}>
+                {Math.round(scale * 100)}%
+              </span>
+              <button
+                onClick={zoomIn}
+                disabled={scale >= MAX_SCALE - 0.001}
+                className="w-8 h-8 grid place-items-center rounded-full text-white bg-white/5 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                title="Zoomer"
+              >
+                <Plus size={16} strokeWidth={3} />
+              </button>
+              <div className="w-px h-5 bg-white/20 mx-1" />
+              <button onClick={fitToScreen} className="w-8 h-8 grid place-items-center rounded-full text-white hover:bg-white/15" title="Voir tout">
+                <Maximize2 size={14} strokeWidth={3} />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* ====== CANVAS DEFILANT ====== */}
+      {/* ====== VIEWPORT (full-bleed background, drag-to-pan) ====== */}
       <div
-        ref={containerRef}
-        className="relative flex-1 overflow-auto"
+        ref={viewportRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        className={`relative flex-1 overflow-hidden touch-none select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
         style={{
-          background: "radial-gradient(ellipse at center, hsl(230 50% 9%) 0%, hsl(230 60% 4%) 100%)",
+          background:
+            "radial-gradient(ellipse at center, hsl(230 50% 9%) 0%, hsl(230 60% 4%) 100%)",
         }}
       >
-        {/* Wrapper centrant : flex pour centrer le canvas quand il est plus petit que la viewport */}
+        {/* Full-bleed biome backdrop — stretches edge to edge regardless of canvas size */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <FullBleedBiomes />
+        </div>
+
+        {/* Pan/zoom canvas */}
         <div
-          className="flex items-center justify-center"
+          className="absolute top-0 left-0 origin-top-left will-change-transform"
           style={{
-            minWidth: "100%",
-            minHeight: "100%",
-            width: Math.max(VB_W * scale, 0),
-            height: Math.max(VB_H * scale, 0),
+            width: VB_W,
+            height: VB_H,
+            transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`,
           }}
         >
-          <div
-            className="relative origin-center shrink-0"
-            style={{
-              width: VB_W,
-              height: VB_H,
-              transform: `scale(${scale})`,
-            }}
+          {/* Path & platforms */}
+          <svg
+            width={VB_W}
+            height={VB_H}
+            viewBox={`0 0 ${VB_W} ${VB_H}`}
+            className="absolute top-0 left-0"
+            style={{ pointerEvents: "none" }}
           >
-            {/* ====== BIOMES (4 décors fondus horizontalement) ====== */}
-            <BiomesLayer />
+            <defs>
+              <filter id="blur-soft" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="14" />
+              </filter>
+              <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="8" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
 
-            {/* ====== SVG : chemin + plateformes ====== */}
-            <svg
-              width={VB_W}
-              height={VB_H}
-              viewBox={`0 0 ${VB_W} ${VB_H}`}
-              className="absolute top-0 left-0"
-              style={{ pointerEvents: "none" }}
-            >
-              <defs>
-                <filter id="blur-soft" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="14" />
-                </filter>
-                <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="8" result="b" />
-                  <feMerge>
-                    <feMergeNode in="b" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
+            <path d={pathD} fill="none" stroke="#000" strokeOpacity="0.55" strokeWidth="64" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={pathD} fill="none" stroke="#fff8d6" strokeOpacity="0.35" strokeWidth="58" strokeLinecap="round" strokeLinejoin="round" filter="url(#neon-glow)" />
+            <path d={pathD} fill="none" stroke="#ffffff" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={pathD} fill="none" stroke="#fff2b0" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+            <path d={pathD} fill="none" stroke="#fff" strokeOpacity="0.7" strokeWidth="3" strokeDasharray="4 22" strokeLinecap="round">
+              <animate attributeName="stroke-dashoffset" from="0" to="-260" dur="14s" repeatCount="indefinite" />
+            </path>
 
-              {/* CHEMIN : ombre sombre pour la profondeur */}
-              <path d={pathD} fill="none" stroke="#000" strokeOpacity="0.55" strokeWidth="64" strokeLinecap="round" strokeLinejoin="round" />
-              {/* CHEMIN : halo lumineux blanc/doré */}
-              <path d={pathD} fill="none" stroke="#fff8d6" strokeOpacity="0.35" strokeWidth="58" strokeLinecap="round" strokeLinejoin="round" filter="url(#neon-glow)" />
-              {/* CHEMIN : ruban principal blanc lumineux */}
-              <path d={pathD} fill="none" stroke="#ffffff" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round" />
-              {/* CHEMIN : reflet doré central */}
-              <path d={pathD} fill="none" stroke="#fff2b0" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
-              {/* CHEMIN : ligne d'énergie animée */}
-              <path d={pathD} fill="none" stroke="#fff" strokeOpacity="0.7" strokeWidth="3" strokeDasharray="4 22" strokeLinecap="round">
-                <animate attributeName="stroke-dashoffset" from="0" to="-260" dur="14s" repeatCount="indefinite" />
-              </path>
+            {Array.from({ length: VISIBLE_LEVELS }, (_, i) => {
+              const lvl = i + 1;
+              const { x, y } = nodePos(lvl);
+              return <Platform key={lvl} level={lvl} x={x} y={y} />;
+            })}
+          </svg>
 
-              {/* Plateformes */}
-              {Array.from({ length: VISIBLE_LEVELS }, (_, i) => {
-                const lvl = i + 1;
-                const { x, y } = nodePos(lvl);
-                return <Platform key={lvl} level={lvl} x={x} y={y} />;
-              })}
-            </svg>
-
-            {/* ====== VOLANTS au-dessus des plateformes (HTML pour animation simple) ====== */}
-            <div className="absolute top-0 left-0 pointer-events-none" style={{ width: VB_W, height: VB_H }}>
-              {Array.from({ length: VISIBLE_LEVELS }, (_, i) => {
-                const lvl = i + 1;
-                const { x, y } = nodePos(lvl);
-                return (
-                  <div
-                    key={lvl}
-                    className="absolute"
-                    style={{
-                      left: x,
-                      top: y - 195,
-                      width: 0,
-                      height: 0,
-                      animation: `float-shuttle 3.${(i % 5) + 2}s ease-in-out ${(i % 6) * 0.25}s infinite`,
-                    }}
-                  >
-                    <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)" }}>
-                      <Shuttle level={lvl} size={130} />
-                    </div>
+          {/* Volants */}
+          <div className="absolute top-0 left-0 pointer-events-none" style={{ width: VB_W, height: VB_H }}>
+            {Array.from({ length: VISIBLE_LEVELS }, (_, i) => {
+              const lvl = i + 1;
+              const { x, y } = nodePos(lvl);
+              return (
+                <div
+                  key={lvl}
+                  className="absolute"
+                  style={{
+                    left: x,
+                    top: y - 195,
+                    width: 0,
+                    height: 0,
+                    animation: `float-shuttle 3.${(i % 5) + 2}s ease-in-out ${(i % 6) * 0.25}s infinite`,
+                  }}
+                >
+                  <div style={{ position: "absolute", left: "50%", top: 0, transform: "translateX(-50%)" }}>
+                    <Shuttle level={lvl} size={130} />
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
+          </div>
 
-            {/* ====== ESSAIM D'ÉLÈVES ====== */}
-            <div className="absolute top-0 left-0 pointer-events-none" style={{ width: VB_W, height: VB_H }}>
-              {Array.from(byLevel.entries()).map(([lvl, list]) => {
-                const { x, y } = nodePos(lvl);
-                const positions = swarmPositions(list.length, x, y);
-                return (
-                  <div key={lvl}>
-                    {list.slice(0, positions.length).map((s, idx) => (
-                      <StudentBadge
-                        key={s.id}
-                        student={s}
-                        x={positions[idx].x}
-                        y={positions[idx].y}
-                        delay={positions[idx].delay}
-                        onClick={() => goStudent(s.id)}
-                      />
-                    ))}
-                    {list.length > positions.length && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); /* future drawer */ }}
-                        className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 grid place-items-center font-bold text-white"
-                        style={{
-                          left: x + 170,
-                          top: y - 60,
-                          width: 38, height: 38, borderRadius: "50%",
-                          background: "linear-gradient(135deg, #555, #222)",
-                          border: "2.5px solid #fff",
-                          boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
-                          fontSize: 13,
-                        }}
-                      >
-                        +{list.length - positions.length}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+          {/* Élèves */}
+          <div className="absolute top-0 left-0 pointer-events-none" style={{ width: VB_W, height: VB_H }}>
+            {Array.from(byLevel.entries()).map(([lvl, list]) => {
+              const { x, y } = nodePos(lvl);
+              const positions = swarmPositions(list.length, x, y);
+              return (
+                <div key={lvl}>
+                  {list.slice(0, positions.length).map((s, idx) => (
+                    <StudentBadge
+                      key={s.id}
+                      student={s}
+                      x={positions[idx].x}
+                      y={positions[idx].y}
+                      delay={positions[idx].delay}
+                      onHover={() => playSfx("hover")}
+                      onClick={() => goStudent(s.id)}
+                    />
+                  ))}
+                  {list.length > positions.length && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); }}
+                      className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 grid place-items-center font-bold text-white"
+                      style={{
+                        left: x + 170,
+                        top: y - 60,
+                        width: 38, height: 38, borderRadius: "50%",
+                        background: "linear-gradient(135deg, #555, #222)",
+                        border: "2.5px solid #fff",
+                        boxShadow: "0 4px 8px rgba(0,0,0,0.6)",
+                        fontSize: 13,
+                      }}
+                    >
+                      +{list.length - positions.length}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -714,73 +836,56 @@ const Parcours = () => {
   );
 };
 
+// Full-bleed backdrop: 4 horizontal biome bands stretching the entire viewport width.
+// Independent from the SVG canvas — guarantees no black bars on wide monitors.
+const FullBleedBiomes = () => {
+  return (
+    <div className="absolute inset-0 flex flex-col">
+      {/* Bands order top→bottom: pantheon, world, regional, gym */}
+      <div className="flex-1 relative overflow-hidden">
+        <BiomePantheon />
+        <BiomeLabel label="PANTHÉON" />
+      </div>
+      <div className="flex-1 relative overflow-hidden">
+        <BiomeWorld />
+        <BiomeLabel label="ÉLITE" />
+      </div>
+      <div className="flex-1 relative overflow-hidden">
+        <BiomeRegional />
+        <BiomeLabel label="RÉGIONALE" />
+      </div>
+      <div className="flex-1 relative overflow-hidden">
+        <BiomeGym />
+        <BiomeLabel label="GYMNASE" />
+      </div>
+    </div>
+  );
+};
+
+const BiomeLabel = ({ label }: { label: string }) => (
+  <div
+    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-display pointer-events-none select-none"
+    style={{
+      fontSize: "min(24vw, 360px)",
+      color: "#ffffff",
+      opacity: 0.04,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      whiteSpace: "nowrap",
+      fontFamily: "Lexend, Inter, sans-serif",
+      fontWeight: 900,
+    }}
+  >
+    {label}
+  </div>
+);
+
 // ============================================================================
 // BIOMES LAYER — 4 décors superposés en bandes horizontales (1/4 hauteur chacun)
 // Étage 0 (Gymnase) en bas → Étage 3 (Panthéon) en haut.
 // Fondu doux entre étages via mask vertical.
 // ============================================================================
-const BiomesLayer = () => {
-  return (
-    <div className="absolute top-0 left-0 overflow-hidden" style={{ width: VB_W, height: VB_H }}>
-      {BIOMES.map((b) => {
-        const fi = biomeFloorIndex(b);
-        // étage 0 = bas, étage 3 = haut
-        const top = VB_H - (fi + 1) * FLOOR_H;
-        return (
-          <div
-            key={b.key}
-            className="absolute left-0 w-full"
-            style={{
-              top,
-              height: FLOOR_H,
-              // fondu doux haut/bas pour que les biomes voisins se mélangent
-              maskImage: "linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%)",
-            }}
-          >
-            {b.key === "gym" && <BiomeGym />}
-            {b.key === "regional" && <BiomeRegional />}
-            {b.key === "world" && <BiomeWorld />}
-            {b.key === "pantheon" && <BiomePantheon />}
-
-            {/* Étiquette fantôme géante centrée sur l'étage */}
-            <div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-display pointer-events-none select-none"
-              style={{
-                fontSize: 360,
-                color: "#ffffff",
-                opacity: 0.05,
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {b.label}
-            </div>
-
-            {/* Bandeau du biome — collé au bord gauche pour ne pas masquer le chemin */}
-            <div
-              className="absolute top-6 left-8 px-6 py-2 rounded-full backdrop-blur"
-              style={{
-                background: "rgba(10, 14, 30, 0.62)",
-                border: "1.5px solid rgba(255,255,255,0.18)",
-              }}
-            >
-              <div className="text-left">
-                <p className="font-display text-2xl text-white tracking-widest leading-none">
-                  ÉTAGE {fi + 1} · {b.label.toUpperCase()}
-                </p>
-                <p className="text-[10px] font-bold tracking-[0.35em] text-white/70 mt-1">
-                  {b.sub.toUpperCase()} · N{b.min}–{b.max}
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+// (Old per-floor BiomesLayer removed — replaced by FullBleedBiomes above.)
 
 // ----------- BIOME 1 : GYMNASE (parquet bois + lignes blanches) ------------
 const BiomeGym = () => (

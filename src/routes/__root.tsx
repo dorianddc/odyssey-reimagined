@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppStoreProvider } from "@/store/AppStore";
+import { AudioProvider } from "@/lib/audio";
 
 import appCss from "../styles.css?url";
 
@@ -77,8 +78,10 @@ function RootComponent() {
   return (
     <TooltipProvider>
       <AppStoreProvider>
-        <Outlet />
-        <Toaster />
+        <AudioProvider>
+          <Outlet />
+          <Toaster />
+        </AudioProvider>
       </AppStoreProvider>
     </TooltipProvider>
   );

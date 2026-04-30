@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/react-router";
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2 } from "lucide-react";
+import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map } from "lucide-react";
 import { CURRICULUM, MAX_LEVEL, getRankBadge, type DimensionKey } from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
+import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
 import { FullSpectrumRadar } from "@/components/game/FullSpectrumRadar";
@@ -14,6 +15,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+
+const FOCUS_KEY = "odyssey_focus_student";
 
 const dimIcons: Record<DimensionKey, typeof Activity> = {
   moteur: Activity,
@@ -29,8 +32,17 @@ const dimColorClass: Record<DimensionKey, string> = {
 
 const StudentProfile = () => {
   const { classId, studentId } = Route.useParams();
-  const navigate = useTanstackNavigate(); const goBack = () => navigate({ to: "/class/$classId", params: { classId } }); const goHome = () => navigate({ to: "/" });
+  const navigate = useTanstackNavigate();
+  const goBack = () => navigate({ to: "/class/$classId", params: { classId } });
+  const goHome = () => navigate({ to: "/" });
+  const goOdyssey = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(FOCUS_KEY, studentId);
+    }
+    navigate({ to: "/class/$classId/parcours", params: { classId } });
+  };
   const { classes, ensureClass, getStudent, bumpSkill, removeStudent, pendingLevelUp, clearLevelUp } = useAppStore();
+  const { setBgm } = useAudio();
   const cls = classes.find((c) => c.id === classId);
   const [burstKeys, setBurstKeys] = useState<Record<string, number>>({});
   const [confirmDel, setConfirmDel] = useState(false);
@@ -38,6 +50,10 @@ const StudentProfile = () => {
   useEffect(() => {
     if (classId) ensureClass(classId);
   }, [classId, ensureClass]);
+
+  useEffect(() => {
+    setBgm("profile");
+  }, [setBgm]);
 
   const student = getStudent(classId, studentId);
   const cycle = cls?.cycle;
@@ -86,6 +102,9 @@ const StudentProfile = () => {
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex items-center gap-4">
           <PopButton variant="ghost" size="sm" onClick={() => goBack()}>
             <ArrowLeft size={16} strokeWidth={3} /> {cls.name}
+          </PopButton>
+          <PopButton variant="primary" size="sm" onClick={goOdyssey} title="Retour à l'Odyssée">
+            <Map size={16} strokeWidth={3} /> Retour à l'Odyssée
           </PopButton>
           <div className="flex-1" />
           <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft">
