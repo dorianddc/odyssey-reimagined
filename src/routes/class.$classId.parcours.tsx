@@ -642,7 +642,7 @@ const Parcours = () => {
             >
               ODYSSÉE DU VOLANT
             </h1>
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-200/85">
+            <span suppressHydrationWarning className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-200/85">
               Stadium Quest · {students.length} élèves
             </span>
           </div>
