@@ -688,7 +688,7 @@ const Parcours = () => {
         </div>
       </header>
 
-      {/* ====== VIEWPORT (full-bleed background, drag-to-pan) ====== */}
+      {/* ====== VIEWPORT (drag-to-pan, zoom) ====== */}
       <div
         ref={viewportRef}
         onPointerDown={onPointerDown}
@@ -697,22 +697,22 @@ const Parcours = () => {
         onPointerCancel={onPointerUp}
         className={`relative flex-1 overflow-hidden touch-none select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
         style={{
-          background:
-            "radial-gradient(ellipse at center, hsl(230 50% 9%) 0%, hsl(230 60% 4%) 100%)",
+          background: "#05060d",
         }}
       >
-        {/* Full-bleed biome backdrop — stretches edge to edge regardless of canvas size */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <FullBleedBiomes />
-        </div>
-
-        {/* Pan/zoom canvas */}
+        {/* MASTER CANVAS — background image + path + platforms + shuttles + students
+            are all welded together inside ONE transformed div. Pan/zoom moves them as one. */}
         <div
+          id="master-canvas"
           className="absolute top-0 left-0 origin-top-left will-change-transform"
           style={{
             width: VB_W,
             height: VB_H,
             transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`,
+            backgroundImage: `url(${odysseyBgUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
           }}
         >
           {/* Path & platforms */}
@@ -817,6 +817,7 @@ const Parcours = () => {
           </div>
         </div>
       </div>
+
 
       {/* ====== STYLES LOCAUX ====== */}
       <style>{`
