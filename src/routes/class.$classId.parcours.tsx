@@ -4,9 +4,12 @@ import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/r
 // chemin sinueux horizontal de gauche à droite reliant 22 plateformes rondes,
 // volants SVG évolutifs (8 paliers de qualité), essaim d'élèves avec tooltips.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Maximize2, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Maximize2, Minus, Plus, Volume2, VolumeX } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { type Student } from "@/data/curriculum";
+import { useAudio } from "@/lib/audio";
+
+const FOCUS_KEY = "odyssey_focus_student";
 
 // ============================================================================
 // GEOMETRY — canvas vertical : 4 étages de biomes horizontaux superposés
