@@ -885,68 +885,7 @@ const BiomeLabel = ({ label }: { label: string }) => (
 // Étage 0 (Gymnase) en bas → Étage 3 (Panthéon) en haut.
 // Fondu doux entre étages via mask vertical.
 // ============================================================================
-const BiomesLayer = () => {
-  return (
-    <div className="absolute top-0 left-0 overflow-hidden" style={{ width: VB_W, height: VB_H }}>
-      {BIOMES.map((b) => {
-        const fi = biomeFloorIndex(b);
-        // étage 0 = bas, étage 3 = haut
-        const top = VB_H - (fi + 1) * FLOOR_H;
-        return (
-          <div
-            key={b.key}
-            className="absolute left-0 w-full"
-            style={{
-              top,
-              height: FLOOR_H,
-              // fondu doux haut/bas pour que les biomes voisins se mélangent
-              maskImage: "linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%)",
-            }}
-          >
-            {b.key === "gym" && <BiomeGym />}
-            {b.key === "regional" && <BiomeRegional />}
-            {b.key === "world" && <BiomeWorld />}
-            {b.key === "pantheon" && <BiomePantheon />}
-
-            {/* Étiquette fantôme géante centrée sur l'étage */}
-            <div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-display pointer-events-none select-none"
-              style={{
-                fontSize: 360,
-                color: "#ffffff",
-                opacity: 0.05,
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {b.label}
-            </div>
-
-            {/* Bandeau du biome — collé au bord gauche pour ne pas masquer le chemin */}
-            <div
-              className="absolute top-6 left-8 px-6 py-2 rounded-full backdrop-blur"
-              style={{
-                background: "rgba(10, 14, 30, 0.62)",
-                border: "1.5px solid rgba(255,255,255,0.18)",
-              }}
-            >
-              <div className="text-left">
-                <p className="font-display text-2xl text-white tracking-widest leading-none">
-                  ÉTAGE {fi + 1} · {b.label.toUpperCase()}
-                </p>
-                <p className="text-[10px] font-bold tracking-[0.35em] text-white/70 mt-1">
-                  {b.sub.toUpperCase()} · N{b.min}–{b.max}
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+// (Old per-floor BiomesLayer removed — replaced by FullBleedBiomes above.)
 
 // ----------- BIOME 1 : GYMNASE (parquet bois + lignes blanches) ------------
 const BiomeGym = () => (
