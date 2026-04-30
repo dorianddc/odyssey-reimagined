@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/react-router";
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2 } from "lucide-react";
+import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map } from "lucide-react";
 import { CURRICULUM, MAX_LEVEL, getRankBadge, type DimensionKey } from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
+import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
 import { FullSpectrumRadar } from "@/components/game/FullSpectrumRadar";
@@ -14,6 +15,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+
+const FOCUS_KEY = "odyssey_focus_student";
 
 const dimIcons: Record<DimensionKey, typeof Activity> = {
   moteur: Activity,
