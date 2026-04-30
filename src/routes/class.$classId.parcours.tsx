@@ -8,6 +8,7 @@ import { ArrowLeft, Maximize2, Minus, Plus, Volume2, VolumeX } from "lucide-reac
 import { useAppStore } from "@/store/AppStore";
 import { type Student } from "@/data/curriculum";
 import { useAudio } from "@/lib/audio";
+import odysseyBgUrl from "@/assets/odyssey-stadium.jpg";
 
 const FOCUS_KEY = "odyssey_focus_student";
 
