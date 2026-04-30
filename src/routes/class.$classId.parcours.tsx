@@ -429,12 +429,12 @@ const swarmPositions = (count: number, cx: number, cy: number) => {
 const Parcours = () => {
   const { classId } = Route.useParams();
   const navigate = useTanstackNavigate();
-  const goStudent = (sid: string) => { playSfx("click"); navigate({ to: "/class/$classId/student/$studentId", params: { classId, studentId: sid } }); };
-  const goBack = () => navigate({ to: "/class/$classId", params: { classId } });
-  const goHome = () => navigate({ to: "/" });
   const { classes, studentsByClass, ensureClass } = useAppStore();
   const { muted, toggleMute, setBgm, playSfx } = useAudio();
   const cls = classes.find((c) => c.id === classId);
+  const goStudent = (sid: string) => { playSfx("click"); navigate({ to: "/class/$classId/student/$studentId", params: { classId, studentId: sid } }); };
+  const goBack = () => navigate({ to: "/class/$classId", params: { classId } });
+  const goHome = () => navigate({ to: "/" });
 
   useEffect(() => {
     if (classId) ensureClass(classId);
