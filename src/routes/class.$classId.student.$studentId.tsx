@@ -32,8 +32,17 @@ const dimColorClass: Record<DimensionKey, string> = {
 
 const StudentProfile = () => {
   const { classId, studentId } = Route.useParams();
-  const navigate = useTanstackNavigate(); const goBack = () => navigate({ to: "/class/$classId", params: { classId } }); const goHome = () => navigate({ to: "/" });
+  const navigate = useTanstackNavigate();
+  const goBack = () => navigate({ to: "/class/$classId", params: { classId } });
+  const goHome = () => navigate({ to: "/" });
+  const goOdyssey = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(FOCUS_KEY, studentId);
+    }
+    navigate({ to: "/class/$classId/parcours", params: { classId } });
+  };
   const { classes, ensureClass, getStudent, bumpSkill, removeStudent, pendingLevelUp, clearLevelUp } = useAppStore();
+  const { setBgm } = useAudio();
   const cls = classes.find((c) => c.id === classId);
   const [burstKeys, setBurstKeys] = useState<Record<string, number>>({});
   const [confirmDel, setConfirmDel] = useState(false);
@@ -41,6 +50,10 @@ const StudentProfile = () => {
   useEffect(() => {
     if (classId) ensureClass(classId);
   }, [classId, ensureClass]);
+
+  useEffect(() => {
+    setBgm("profile");
+  }, [setBgm]);
 
   const student = getStudent(classId, studentId);
   const cycle = cls?.cycle;
