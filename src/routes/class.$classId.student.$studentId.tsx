@@ -103,6 +103,9 @@ const StudentProfile = () => {
           <PopButton variant="ghost" size="sm" onClick={() => goBack()}>
             <ArrowLeft size={16} strokeWidth={3} /> {cls.name}
           </PopButton>
+          <PopButton variant="primary" size="sm" onClick={goOdyssey} title="Retour à l'Odyssée">
+            <Map size={16} strokeWidth={3} /> Retour à l'Odyssée
+          </PopButton>
           <div className="flex-1" />
           <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-ink-soft">
             <Sparkles size={14} className="text-primary" strokeWidth={3} />
