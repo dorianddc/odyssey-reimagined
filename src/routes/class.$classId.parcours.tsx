@@ -337,13 +337,14 @@ const palette = [
 const colorForName = (name: string) => palette[name.charCodeAt(0) % palette.length];
 
 const StudentBadge = ({
-  student, x, y, delay, onClick,
+  student, x, y, delay, onClick, onHover,
 }: {
   student: Student;
   x: number;
   y: number;
   delay: number;
   onClick: () => void;
+  onHover?: () => void;
 }) => {
   const color = colorForName(student.name);
   const initial = student.name[0].toUpperCase();
@@ -351,6 +352,7 @@ const StudentBadge = ({
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       onPointerDown={(e) => e.stopPropagation()}
+      onMouseEnter={onHover}
       className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 group"
       style={{
         left: x,
