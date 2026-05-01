@@ -209,6 +209,57 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const recordSituation = useCallback<AppStore["recordSituation"]>(
+    (classId, skillIds, snapshot) => {
+      const cls = classes.find((c) => c.id === classId);
+      const outcome: SituationOutcome = { progressed: [], stagnated: [] };
+      if (!cls) return outcome;
+      const cycle = cls.cycle;
+
+      setStudentsByClass((prev) => {
+        const list = prev[classId] ? [...prev[classId]] : [];
+        const next = list.map((stu) => {
+          const s: Student = { ...stu, difficulties: [...(stu.difficulties || [])] };
+          const before = snapshot[s.id] || {};
+          skillIds.forEach((skillId) => {
+            const meta = findSkillMeta(cycle, skillId);
+            if (!meta) return;
+            const beforeStars = before[skillId] ?? 0;
+            const afterStars = s.skillStates[skillId] ?? 0;
+            if (afterStars > beforeStars) {
+              outcome.progressed.push({
+                studentId: s.id, studentName: s.name, skillId,
+                skillCode: meta.skill.code, before: beforeStars, after: afterStars,
+              });
+            } else if (afterStars < MASTERY_THRESHOLD) {
+              outcome.stagnated.push({
+                studentId: s.id, studentName: s.name, skillId,
+                skillCode: meta.skill.code, level: afterStars,
+              });
+              const filtered = s.difficulties.filter((d) => d.skillId !== skillId);
+              const diff: Difficulty = {
+                id: `${s.id}-${skillId}-${Date.now()}`,
+                skillId,
+                skillCode: meta.skill.code,
+                dimension: meta.dimension,
+                currentLevel: afterStars,
+                date: new Date().toISOString(),
+              };
+              s.difficulties = [...filtered, diff];
+            } else {
+              s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
+            }
+          });
+          return s;
+        });
+        return { ...prev, [classId]: next };
+      });
+
+      return outcome;
+    },
+    [classes]
+  );
+
   const value = useMemo<AppStore>(
     () => ({
       classes,
@@ -220,10 +271,11 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
       removeClass,
       addStudent,
       removeStudent,
+      recordSituation,
       pendingLevelUp,
       clearLevelUp: () => setPendingLevelUp(null),
     }),
-    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, pendingLevelUp]
+    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, recordSituation, pendingLevelUp]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
