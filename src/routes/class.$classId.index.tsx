@@ -127,6 +127,9 @@ function ClassRoster() {
             <PopButton variant="hot" size="sm" onClick={() => navigate({ to: "/class/$classId/situation", params: { classId } })}>
               <Flag size={14} strokeWidth={3} /> Situation
             </PopButton>
+            <PopButton variant="ghost" size="sm" onClick={() => navigate({ to: "/class/$classId/historique", params: { classId } })}>
+              <History size={14} strokeWidth={3} /> Historique
+            </PopButton>
             <PopButton variant="accent" size="sm" onClick={() => navigate({ to: "/class/$classId/parcours", params: { classId } })}>
               <MapIcon size={14} strokeWidth={3} /> Parcours
             </PopButton>
