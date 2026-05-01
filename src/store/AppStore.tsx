@@ -188,9 +188,10 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
         s.skillStates = ns;
         s.level = newLevel;
         list[idx] = s;
-        if (newLevel > oldLevel) {
+        if (newLevel > oldLevel && !levelUpSuspendedRef.current) {
+          const studentId = s.id;
           setTimeout(() => {
-            setPendingLevelUp({ studentName: s.name, oldLevel, newLevel });
+            setPendingLevelUp({ studentId, studentName: s.name, oldLevel, newLevel });
           }, 250);
         }
         return { ...prev, [classId]: list };
