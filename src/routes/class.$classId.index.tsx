@@ -124,6 +124,9 @@ function ClassRoster() {
           </div>
 
           <div className="flex items-center gap-2">
+            <PopButton variant="hot" size="sm" onClick={() => navigate({ to: "/class/$classId/situation", params: { classId } })}>
+              <Flag size={14} strokeWidth={3} /> Situation
+            </PopButton>
             <PopButton variant="accent" size="sm" onClick={() => navigate({ to: "/class/$classId/parcours", params: { classId } })}>
               <MapIcon size={14} strokeWidth={3} /> Parcours
             </PopButton>
