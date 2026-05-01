@@ -62,7 +62,16 @@ const loadStudents = (): Record<string, Student[]> => {
   try {
     const raw = window.localStorage.getItem(LS_STUDENTS);
     if (!raw) return {};
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw) as Record<string, Student[]>;
+    // Migration: ensure every student has the `difficulties` array
+    Object.keys(parsed).forEach((cid) => {
+      parsed[cid] = (parsed[cid] || []).map((s) => ({
+        ...s,
+        difficulties: Array.isArray(s.difficulties) ? s.difficulties : [],
+        stagnations: Array.isArray(s.stagnations) ? s.stagnations : [],
+      }));
+    });
+    return parsed;
   } catch {
     return {};
   }
