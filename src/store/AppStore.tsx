@@ -26,6 +26,11 @@ export interface ClassConfig {
   emoji: string;
 }
 
+interface SituationOutcome {
+  progressed: { studentId: string; studentName: string; skillId: string; skillCode: string; before: number; after: number }[];
+  stagnated: { studentId: string; studentName: string; skillId: string; skillCode: string; level: number }[];
+}
+
 interface AppStore {
   classes: ClassConfig[];
   studentsByClass: Record<string, Student[]>;
@@ -36,6 +41,11 @@ interface AppStore {
   removeClass: (classId: string) => void;
   addStudent: (classId: string, input: { name: string; gender: "F" | "M" }) => void;
   removeStudent: (classId: string, studentId: string) => void;
+  recordSituation: (
+    classId: string,
+    skillIds: string[],
+    snapshot: Record<string, Record<string, number>> // studentId -> skillId -> stars BEFORE
+  ) => SituationOutcome;
   pendingLevelUp: LevelUpEvent | null;
   clearLevelUp: () => void;
 }
