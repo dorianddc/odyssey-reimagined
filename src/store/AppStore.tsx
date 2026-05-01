@@ -246,7 +246,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   const recordSituation = useCallback<AppStore["recordSituation"]>(
     (classId, skillIds, snapshot) => {
       const cls = classes.find((c) => c.id === classId);
-      const outcome: SituationOutcome = { progressed: [], stagnated: [] };
+      const outcome: SituationOutcome = { progressed: [], stagnated: [], levelUps: [] };
       if (!cls) return outcome;
       const cycle = cls.cycle;
 
@@ -255,17 +255,35 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
         const next = list.map((stu) => {
           const s: Student = { ...stu, difficulties: [...(stu.difficulties || [])] };
           const before = snapshot[s.id] || {};
+          const oldLevel = stu.level;
+          let touched = false;
           skillIds.forEach((skillId) => {
             const meta = findSkillMeta(cycle, skillId);
             if (!meta) return;
             const beforeStars = before[skillId] ?? 0;
             const afterStars = s.skillStates[skillId] ?? 0;
+            if (afterStars !== beforeStars) touched = true;
             if (afterStars > beforeStars) {
               outcome.progressed.push({
                 studentId: s.id, studentName: s.name, skillId,
                 skillCode: meta.skill.code, before: beforeStars, after: afterStars,
               });
+              // student progressed on this skill → clear any prior difficulty for it
+              s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
+              // if still under mastery, keep the difficulty list as-is (no new entry on progression)
+              if (afterStars < MASTERY_THRESHOLD) {
+                const diff: Difficulty = {
+                  id: `${s.id}-${skillId}-${Date.now()}`,
+                  skillId,
+                  skillCode: meta.skill.code,
+                  dimension: meta.dimension,
+                  currentLevel: afterStars,
+                  date: new Date().toISOString(),
+                };
+                s.difficulties = [...s.difficulties, diff];
+              }
             } else if (afterStars < MASTERY_THRESHOLD) {
+              // stagnation — record / refresh difficulty for THIS skill only
               outcome.stagnated.push({
                 studentId: s.id, studentName: s.name, skillId,
                 skillCode: meta.skill.code, level: afterStars,
@@ -281,18 +299,47 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
               };
               s.difficulties = [...filtered, diff];
             } else {
+              // reached mastery threshold → drop any prior difficulty on this skill
               s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
             }
           });
+          // recompute level after the situation; capture level-ups for the debrief
+          if (touched) {
+            const newLevel = calculateLevelFromStars(s.skillStates, cycle);
+            s.level = newLevel;
+            if (newLevel > oldLevel) {
+              outcome.levelUps.push({
+                studentId: s.id, studentName: s.name, oldLevel, newLevel,
+              });
+            }
+          }
           return s;
         });
         return { ...prev, [classId]: next };
       });
 
+      // append to history
+      const codes = skillIds.map((id) => findSkillMeta(cls.cycle, id)?.skill.code || id);
+      const record: SituationRecord = {
+        id: `sit-${Date.now()}`,
+        date: new Date().toISOString(),
+        classId,
+        skillIds,
+        skillCodes: codes,
+        progressed: outcome.progressed,
+        stagnated: outcome.stagnated,
+        levelUps: outcome.levelUps,
+      };
+      setSituationHistory((prev) => [record, ...prev]);
+
       return outcome;
     },
     [classes]
   );
+
+  const setLevelUpSuspended = useCallback((suspended: boolean) => {
+    levelUpSuspendedRef.current = suspended;
+  }, []);
 
   const value = useMemo<AppStore>(
     () => ({
@@ -306,10 +353,12 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
       addStudent,
       removeStudent,
       recordSituation,
+      situationHistory,
+      setLevelUpSuspended,
       pendingLevelUp,
       clearLevelUp: () => setPendingLevelUp(null),
     }),
-    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, recordSituation, pendingLevelUp]
+    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, recordSituation, situationHistory, setLevelUpSuspended, pendingLevelUp]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
