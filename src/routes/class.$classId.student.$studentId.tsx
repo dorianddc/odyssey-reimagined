@@ -88,7 +88,7 @@ const StudentProfile = () => {
 
   return (
     <main className="min-h-screen pb-24">
-      {pendingLevelUp && (
+      {pendingLevelUp && pendingLevelUp.studentId === studentId && (
         <LevelUpOverlay
           studentName={pendingLevelUp.studentName}
           oldLevel={pendingLevelUp.oldLevel}
