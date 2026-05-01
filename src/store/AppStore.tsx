@@ -6,8 +6,11 @@ import {
   CURRICULUM,
   calculateLevelFromStars,
   generateClassStudents,
+  findSkillMeta,
+  MASTERY_THRESHOLD,
   type Cycle,
   type Student,
+  type Difficulty,
 } from "@/data/curriculum";
 
 interface LevelUpEvent {
@@ -23,6 +26,11 @@ export interface ClassConfig {
   emoji: string;
 }
 
+interface SituationOutcome {
+  progressed: { studentId: string; studentName: string; skillId: string; skillCode: string; before: number; after: number }[];
+  stagnated: { studentId: string; studentName: string; skillId: string; skillCode: string; level: number }[];
+}
+
 interface AppStore {
   classes: ClassConfig[];
   studentsByClass: Record<string, Student[]>;
@@ -33,6 +41,11 @@ interface AppStore {
   removeClass: (classId: string) => void;
   addStudent: (classId: string, input: { name: string; gender: "F" | "M" }) => void;
   removeStudent: (classId: string, studentId: string) => void;
+  recordSituation: (
+    classId: string,
+    skillIds: string[],
+    snapshot: Record<string, Record<string, number>> // studentId -> skillId -> stars BEFORE
+  ) => SituationOutcome;
   pendingLevelUp: LevelUpEvent | null;
   clearLevelUp: () => void;
 }
@@ -62,7 +75,16 @@ const loadStudents = (): Record<string, Student[]> => {
   try {
     const raw = window.localStorage.getItem(LS_STUDENTS);
     if (!raw) return {};
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw) as Record<string, Student[]>;
+    // Migration: ensure every student has the `difficulties` array
+    Object.keys(parsed).forEach((cid) => {
+      parsed[cid] = (parsed[cid] || []).map((s) => ({
+        ...s,
+        difficulties: Array.isArray(s.difficulties) ? s.difficulties : [],
+        stagnations: Array.isArray(s.stagnations) ? s.stagnations : [],
+      }));
+    });
+    return parsed;
   } catch {
     return {};
   }
@@ -173,7 +195,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
         gender,
         level: calculateLevelFromStars({}, cls.cycle),
         skillStates: {},
-        stagnations: [],
+        stagnations: [], difficulties: [],
         avatarHue: Math.floor(Math.random() * 360),
       };
       return { ...prev, [classId]: [...list, student] };
@@ -187,6 +209,57 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const recordSituation = useCallback<AppStore["recordSituation"]>(
+    (classId, skillIds, snapshot) => {
+      const cls = classes.find((c) => c.id === classId);
+      const outcome: SituationOutcome = { progressed: [], stagnated: [] };
+      if (!cls) return outcome;
+      const cycle = cls.cycle;
+
+      setStudentsByClass((prev) => {
+        const list = prev[classId] ? [...prev[classId]] : [];
+        const next = list.map((stu) => {
+          const s: Student = { ...stu, difficulties: [...(stu.difficulties || [])] };
+          const before = snapshot[s.id] || {};
+          skillIds.forEach((skillId) => {
+            const meta = findSkillMeta(cycle, skillId);
+            if (!meta) return;
+            const beforeStars = before[skillId] ?? 0;
+            const afterStars = s.skillStates[skillId] ?? 0;
+            if (afterStars > beforeStars) {
+              outcome.progressed.push({
+                studentId: s.id, studentName: s.name, skillId,
+                skillCode: meta.skill.code, before: beforeStars, after: afterStars,
+              });
+            } else if (afterStars < MASTERY_THRESHOLD) {
+              outcome.stagnated.push({
+                studentId: s.id, studentName: s.name, skillId,
+                skillCode: meta.skill.code, level: afterStars,
+              });
+              const filtered = s.difficulties.filter((d) => d.skillId !== skillId);
+              const diff: Difficulty = {
+                id: `${s.id}-${skillId}-${Date.now()}`,
+                skillId,
+                skillCode: meta.skill.code,
+                dimension: meta.dimension,
+                currentLevel: afterStars,
+                date: new Date().toISOString(),
+              };
+              s.difficulties = [...filtered, diff];
+            } else {
+              s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
+            }
+          });
+          return s;
+        });
+        return { ...prev, [classId]: next };
+      });
+
+      return outcome;
+    },
+    [classes]
+  );
+
   const value = useMemo<AppStore>(
     () => ({
       classes,
@@ -198,10 +271,11 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
       removeClass,
       addStudent,
       removeStudent,
+      recordSituation,
       pendingLevelUp,
       clearLevelUp: () => setPendingLevelUp(null),
     }),
-    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, pendingLevelUp]
+    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, recordSituation, pendingLevelUp]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

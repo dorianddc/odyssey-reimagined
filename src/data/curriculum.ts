@@ -271,6 +271,15 @@ export const ATTENDUS: Record<Cycle, string[]> = {
   ],
 };
 
+export interface Difficulty {
+  id: string;
+  skillId: string;
+  skillCode: string; // e.g. "C1"
+  dimension: DimensionKey;
+  currentLevel: number; // stars at the moment the difficulty was recorded
+  date: string;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -278,8 +287,36 @@ export interface Student {
   level: number;
   skillStates: Record<string, number>; // skillId -> stars 0..5
   stagnations: { skillId: string; skillName?: string; palierCible: number; reason: string; remediation?: string; date: string }[];
+  difficulties: Difficulty[];
   avatarHue: number;
 }
+
+export const MAX_SKILL_STARS = 5;
+export const MASTERY_THRESHOLD = 4; // a student at >= 4 stars cannot be tagged as a difficulty
+
+export const findSkillMeta = (
+  cycle: Cycle,
+  skillId: string
+): { skill: Skill; dimension: DimensionKey } | null => {
+  const cats = CURRICULUM[cycle]?.categories;
+  if (!cats) return null;
+  for (const dim of Object.keys(cats) as DimensionKey[]) {
+    const s = cats[dim].skills.find((sk) => sk.id === skillId);
+    if (s) return { skill: s, dimension: dim };
+  }
+  return null;
+};
+
+export const dimensionColor = (d: DimensionKey): { bg: string; text: string; label: string } => {
+  switch (d) {
+    case "moteur":
+      return { bg: "bg-[oklch(0.65_0.22_25)]", text: "text-white", label: "Moteur" };
+    case "methodo":
+      return { bg: "bg-[oklch(0.78_0.18_115)]", text: "text-ink", label: "Méthodo" };
+    case "social":
+      return { bg: "bg-[oklch(0.65_0.18_240)]", text: "text-white", label: "Social" };
+  }
+};
 
 export const calculateLevelFromStars = (skillStates: Record<string, number>, cycle: Cycle): number => {
   const categories = CURRICULUM[cycle]?.categories;
@@ -324,7 +361,7 @@ export const generateClassStudents = (classId: string): Student[] => {
       gender,
       level: calculateLevelFromStars(skillStates, cycle),
       skillStates,
-      stagnations: [],
+      stagnations: [], difficulties: [],
       avatarHue: Math.floor(rand() * 360),
     };
   };

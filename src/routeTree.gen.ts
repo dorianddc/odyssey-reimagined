@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClassClassIdIndexRouteImport } from './routes/class.$classId.index'
+import { Route as ClassClassIdSituationRouteImport } from './routes/class.$classId.situation'
 import { Route as ClassClassIdParcoursRouteImport } from './routes/class.$classId.parcours'
 import { Route as ClassClassIdStudentStudentIdRouteImport } from './routes/class.$classId.student.$studentId'
+import { Route as ClassClassIdSituationRouteImport } from './routes/class.$classId.situation'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,9 +26,19 @@ const ClassClassIdIndexRoute = ClassClassIdIndexRouteImport.update({
   path: '/class/$classId/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClassClassIdSituationRoute = ClassClassIdSituationRouteImport.update({
+  id: '/class/$classId/situation',
+  path: '/class/$classId/situation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClassClassIdParcoursRoute = ClassClassIdParcoursRouteImport.update({
   id: '/class/$classId/parcours',
   path: '/class/$classId/parcours',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClassClassIdSituationRoute = ClassClassIdSituationRouteImport.update({
+  id: '/class/$classId/situation',
+  path: '/class/$classId/situation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClassClassIdStudentStudentIdRoute =
@@ -39,12 +51,14 @@ const ClassClassIdStudentStudentIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
+  '/class/$classId/situation': typeof ClassClassIdSituationRoute
   '/class/$classId/': typeof ClassClassIdIndexRoute
   '/class/$classId/student/$studentId': typeof ClassClassIdStudentStudentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
+  '/class/$classId/situation': typeof ClassClassIdSituationRoute
   '/class/$classId': typeof ClassClassIdIndexRoute
   '/class/$classId/student/$studentId': typeof ClassClassIdStudentStudentIdRoute
 }
@@ -52,6 +66,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
+  '/class/$classId/situation': typeof ClassClassIdSituationRoute
   '/class/$classId/': typeof ClassClassIdIndexRoute
   '/class/$classId/student/$studentId': typeof ClassClassIdStudentStudentIdRoute
 }
@@ -60,18 +75,21 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/class/$classId/parcours'
+    | '/class/$classId/situation'
     | '/class/$classId/'
     | '/class/$classId/student/$studentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/class/$classId/parcours'
+    | '/class/$classId/situation'
     | '/class/$classId'
     | '/class/$classId/student/$studentId'
   id:
     | '__root__'
     | '/'
     | '/class/$classId/parcours'
+    | '/class/$classId/situation'
     | '/class/$classId/'
     | '/class/$classId/student/$studentId'
   fileRoutesById: FileRoutesById
@@ -79,6 +97,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClassClassIdParcoursRoute: typeof ClassClassIdParcoursRoute
+  ClassClassIdSituationRoute: typeof ClassClassIdSituationRoute
   ClassClassIdIndexRoute: typeof ClassClassIdIndexRoute
   ClassClassIdStudentStudentIdRoute: typeof ClassClassIdStudentStudentIdRoute
 }
@@ -97,6 +116,13 @@ declare module '@tanstack/react-router' {
       path: '/class/$classId'
       fullPath: '/class/$classId/'
       preLoaderRoute: typeof ClassClassIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/class/$classId/situation': {
+      id: '/class/$classId/situation'
+      path: '/class/$classId/situation'
+      fullPath: '/class/$classId/situation'
+      preLoaderRoute: typeof ClassClassIdSituationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/class/$classId/parcours': {
@@ -119,6 +145,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClassClassIdParcoursRoute: ClassClassIdParcoursRoute,
+  ClassClassIdSituationRoute: ClassClassIdSituationRoute,
   ClassClassIdIndexRoute: ClassClassIdIndexRoute,
   ClassClassIdStudentStudentIdRoute: ClassClassIdStudentStudentIdRoute,
 }

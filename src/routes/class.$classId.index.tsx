@@ -1,11 +1,12 @@
 // Class roster — grid of student "trading cards", click to open profile.
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus } from "lucide-react";
+import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus, Flag, AlertTriangle } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
-import { getRankBadge, MAX_LEVEL } from "@/data/curriculum";
+import { DifficultyDot } from "@/components/game/DifficultyDot";
+import { getRankBadge, MAX_LEVEL, CURRICULUM, type DimensionKey } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -28,6 +29,11 @@ function ClassRoster() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [genderFilter, setGenderFilter] = useState<"All" | "F" | "M">("All");
 
+  // Pédagogical filters
+  const [dimFilter, setDimFilter] = useState<"all" | DimensionKey>("all");
+  const [urgencyFilter, setUrgencyFilter] = useState<"all" | "high" | "low">("all");
+  const [skillFilter, setSkillFilter] = useState<string>("all");
+
   const [openAdd, setOpenAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newGender, setNewGender] = useState<"F" | "M">("F");
@@ -40,10 +46,27 @@ function ClassRoster() {
   const students = studentsByClass[classId] || [];
   const studentToDelete = students.find((s) => s.id === confirmDel);
 
+  // List of skills available for the filter dropdown (depends on cycle)
+  const skillsCatalog = useMemo(() => {
+    if (!cls) return [];
+    const cats = CURRICULUM[cls.cycle].categories;
+    return (Object.keys(cats) as DimensionKey[]).flatMap((dim) =>
+      cats[dim].skills.map((s) => ({ id: s.id, code: s.code, dimension: dim, name: s.name }))
+    );
+  }, [cls]);
+
   const filtered = useMemo(() => {
     const list = students
       .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
-      .filter((s) => genderFilter === "All" || s.gender === genderFilter);
+      .filter((s) => genderFilter === "All" || s.gender === genderFilter)
+      .filter((s) => {
+        const diffs = s.difficulties || [];
+        if (dimFilter !== "all" && !diffs.some((d) => d.dimension === dimFilter)) return false;
+        if (urgencyFilter === "high" && !diffs.some((d) => d.currentLevel <= 2)) return false;
+        if (urgencyFilter === "low" && !diffs.some((d) => d.currentLevel >= 3)) return false;
+        if (skillFilter !== "all" && !diffs.some((d) => d.skillId === skillFilter)) return false;
+        return true;
+      });
     list.sort((a, b) => {
       let va: string | number = a[sortKey];
       let vb: string | number = b[sortKey];
@@ -54,7 +77,9 @@ function ClassRoster() {
       return sortOrder === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
     });
     return list;
-  }, [students, search, genderFilter, sortKey, sortOrder]);
+  }, [students, search, genderFilter, sortKey, sortOrder, dimFilter, urgencyFilter, skillFilter]);
+
+  const anyPedagogicalFilter = dimFilter !== "all" || urgencyFilter !== "all" || skillFilter !== "all";
 
   const handleConfirmAdd = () => {
     if (!newName.trim()) return;
@@ -99,6 +124,9 @@ function ClassRoster() {
           </div>
 
           <div className="flex items-center gap-2">
+            <PopButton variant="hot" size="sm" onClick={() => navigate({ to: "/class/$classId/situation", params: { classId } })}>
+              <Flag size={14} strokeWidth={3} /> Situation
+            </PopButton>
             <PopButton variant="accent" size="sm" onClick={() => navigate({ to: "/class/$classId/parcours", params: { classId } })}>
               <MapIcon size={14} strokeWidth={3} /> Parcours
             </PopButton>
@@ -168,6 +196,70 @@ function ClassRoster() {
             </button>
           ))}
         </div>
+
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pb-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-ink/15 pt-3">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">
+            <AlertTriangle size={14} strokeWidth={3} /> Filtres pédago
+          </span>
+
+          {/* Dimension */}
+          {([
+            { k: "all", label: "Toutes", cls: "bg-surface" },
+            { k: "moteur", label: "Moteur", cls: "bg-[oklch(0.65_0.22_25)] text-white" },
+            { k: "methodo", label: "Méthodo", cls: "bg-[oklch(0.82_0.18_115)] text-ink" },
+            { k: "social", label: "Social", cls: "bg-[oklch(0.65_0.18_240)] text-white" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.k}
+              onClick={() => setDimFilter(opt.k as typeof dimFilter)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl border-[2.5px] border-ink font-display text-xs tracking-widest transition-all",
+                dimFilter === opt.k ? `${opt.cls} shadow-pop-sm` : "bg-surface hover:bg-surface-2"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+
+          <span className="ml-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">Urgence</span>
+          {([
+            { k: "all", label: "Toutes" },
+            { k: "high", label: "N≤2" },
+            { k: "low", label: "N≥3" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.k}
+              onClick={() => setUrgencyFilter(opt.k as typeof urgencyFilter)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl border-[2.5px] border-ink font-display text-xs tracking-widest transition-all",
+                urgencyFilter === opt.k ? "bg-hot text-hot-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+
+          <select
+            value={skillFilter}
+            onChange={(e) => setSkillFilter(e.target.value)}
+            className="ml-2 px-3 py-1.5 rounded-xl border-[2.5px] border-ink bg-surface font-display text-xs tracking-widest"
+          >
+            <option value="all">Toute compétence</option>
+            {skillsCatalog.map((s) => (
+              <option key={s.id} value={s.id}>{s.code} · {s.dimension}</option>
+            ))}
+          </select>
+
+          {anyPedagogicalFilter && (
+            <button
+              onClick={() => { setDimFilter("all"); setUrgencyFilter("all"); setSkillFilter("all"); }}
+              className="ml-1 px-2.5 py-1.5 rounded-xl border-[2.5px] border-ink bg-surface hover:bg-surface-2 inline-flex items-center gap-1 text-xs font-display"
+              aria-label="Réinitialiser filtres"
+            >
+              <X size={12} strokeWidth={3} /> Réinit.
+            </button>
+          )}
+        </div>
       </header>
 
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -197,6 +289,13 @@ function ClassRoster() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                 {rank.emoji} {rank.label}
               </span>
+              {s.difficulties && s.difficulties.length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-1">
+                  {s.difficulties.slice(0, 5).map((d) => (
+                    <DifficultyDot key={d.id} difficulty={d} />
+                  ))}
+                </div>
+              )}
 
               <div className="mt-3 h-2 rounded-full bg-muted border-2 border-ink overflow-hidden">
                 <div className="h-full bg-gradient-sun transition-all" style={{ width: `${pct}%` }} />
