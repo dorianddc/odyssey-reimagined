@@ -57,8 +57,10 @@ interface AppStore {
   recordSituation: (
     classId: string,
     skillIds: string[],
-    snapshot: Record<string, Record<string, number>> // studentId -> skillId -> stars BEFORE
+    snapshot: Record<string, Record<string, number>>
   ) => SituationOutcome;
+  situationHistory: SituationRecord[];
+  setLevelUpSuspended: (suspended: boolean) => void;
   pendingLevelUp: LevelUpEvent | null;
   clearLevelUp: () => void;
 }
