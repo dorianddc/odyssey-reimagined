@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClassClassIdIndexRouteImport } from './routes/class.$classId.index'
 import { Route as ClassClassIdSituationRouteImport } from './routes/class.$classId.situation'
 import { Route as ClassClassIdParcoursRouteImport } from './routes/class.$classId.parcours'
+import { Route as ClassClassIdHistoriqueRouteImport } from './routes/class.$classId.historique'
 import { Route as ClassClassIdStudentStudentIdRouteImport } from './routes/class.$classId.student.$studentId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const ClassClassIdParcoursRoute = ClassClassIdParcoursRouteImport.update({
   path: '/class/$classId/parcours',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClassClassIdHistoriqueRoute = ClassClassIdHistoriqueRouteImport.update({
+  id: '/class/$classId/historique',
+  path: '/class/$classId/historique',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClassClassIdStudentStudentIdRoute =
   ClassClassIdStudentStudentIdRouteImport.update({
     id: '/class/$classId/student/$studentId',
@@ -44,6 +50,7 @@ const ClassClassIdStudentStudentIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/class/$classId/historique': typeof ClassClassIdHistoriqueRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
   '/class/$classId/situation': typeof ClassClassIdSituationRoute
   '/class/$classId/': typeof ClassClassIdIndexRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/class/$classId/historique': typeof ClassClassIdHistoriqueRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
   '/class/$classId/situation': typeof ClassClassIdSituationRoute
   '/class/$classId': typeof ClassClassIdIndexRoute
@@ -59,6 +67,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/class/$classId/historique': typeof ClassClassIdHistoriqueRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
   '/class/$classId/situation': typeof ClassClassIdSituationRoute
   '/class/$classId/': typeof ClassClassIdIndexRoute
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/class/$classId/historique'
     | '/class/$classId/parcours'
     | '/class/$classId/situation'
     | '/class/$classId/'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/class/$classId/historique'
     | '/class/$classId/parcours'
     | '/class/$classId/situation'
     | '/class/$classId'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/class/$classId/historique'
     | '/class/$classId/parcours'
     | '/class/$classId/situation'
     | '/class/$classId/'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ClassClassIdHistoriqueRoute: typeof ClassClassIdHistoriqueRoute
   ClassClassIdParcoursRoute: typeof ClassClassIdParcoursRoute
   ClassClassIdSituationRoute: typeof ClassClassIdSituationRoute
   ClassClassIdIndexRoute: typeof ClassClassIdIndexRoute
@@ -126,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClassClassIdParcoursRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/class/$classId/historique': {
+      id: '/class/$classId/historique'
+      path: '/class/$classId/historique'
+      fullPath: '/class/$classId/historique'
+      preLoaderRoute: typeof ClassClassIdHistoriqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/class/$classId/student/$studentId': {
       id: '/class/$classId/student/$studentId'
       path: '/class/$classId/student/$studentId'
@@ -138,6 +158,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ClassClassIdHistoriqueRoute: ClassClassIdHistoriqueRoute,
   ClassClassIdParcoursRoute: ClassClassIdParcoursRoute,
   ClassClassIdSituationRoute: ClassClassIdSituationRoute,
   ClassClassIdIndexRoute: ClassClassIdIndexRoute,
