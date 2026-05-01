@@ -1,6 +1,6 @@
 // Lightweight global store using React context — keeps generated students per class in memory.
 // Persisted to localStorage so the teacher can manage real classes/students.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   CLASSES_CONFIG as DEFAULT_CLASSES,
   CURRICULUM,
@@ -14,6 +14,7 @@ import {
 } from "@/data/curriculum";
 
 interface LevelUpEvent {
+  studentId: string;
   studentName: string;
   oldLevel: number;
   newLevel: number;
@@ -29,6 +30,18 @@ export interface ClassConfig {
 interface SituationOutcome {
   progressed: { studentId: string; studentName: string; skillId: string; skillCode: string; before: number; after: number }[];
   stagnated: { studentId: string; studentName: string; skillId: string; skillCode: string; level: number }[];
+  levelUps: { studentId: string; studentName: string; oldLevel: number; newLevel: number }[];
+}
+
+export interface SituationRecord {
+  id: string;
+  date: string;
+  classId: string;
+  skillIds: string[];
+  skillCodes: string[];
+  progressed: SituationOutcome["progressed"];
+  stagnated: SituationOutcome["stagnated"];
+  levelUps: SituationOutcome["levelUps"];
 }
 
 interface AppStore {
@@ -44,8 +57,10 @@ interface AppStore {
   recordSituation: (
     classId: string,
     skillIds: string[],
-    snapshot: Record<string, Record<string, number>> // studentId -> skillId -> stars BEFORE
+    snapshot: Record<string, Record<string, number>>
   ) => SituationOutcome;
+  situationHistory: SituationRecord[];
+  setLevelUpSuspended: (suspended: boolean) => void;
   pendingLevelUp: LevelUpEvent | null;
   clearLevelUp: () => void;
 }
@@ -54,8 +69,21 @@ const Ctx = createContext<AppStore | null>(null);
 
 const LS_CLASSES = "db_classes_v1";
 const LS_STUDENTS = "db_students_v1";
+const LS_HISTORY = "db_situation_history_v1";
 
 const EMOJI_POOL = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "💎", "🦁", "🐻", "🐯", "🦅", "🐺", "🦄", "🐲", "🌟"];
+
+const loadHistory = (): SituationRecord[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LS_HISTORY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 const loadClasses = (): ClassConfig[] => {
   if (typeof window === "undefined") return DEFAULT_CLASSES;
@@ -108,7 +136,9 @@ const slugifyClassName = (name: string, existing: string[]): string => {
 export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   const [classes, setClasses] = useState<ClassConfig[]>(() => loadClasses());
   const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>(() => loadStudents());
+  const [situationHistory, setSituationHistory] = useState<SituationRecord[]>(() => loadHistory());
   const [pendingLevelUp, setPendingLevelUp] = useState<LevelUpEvent | null>(null);
+  const levelUpSuspendedRef = useRef(false);
 
   // persist
   useEffect(() => {
@@ -117,6 +147,9 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     try { localStorage.setItem(LS_STUDENTS, JSON.stringify(studentsByClass)); } catch { /* noop */ }
   }, [studentsByClass]);
+  useEffect(() => {
+    try { localStorage.setItem(LS_HISTORY, JSON.stringify(situationHistory)); } catch { /* noop */ }
+  }, [situationHistory]);
 
   const ensureClass = useCallback((classId: string) => {
     setStudentsByClass((prev) => {
@@ -155,9 +188,10 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
         s.skillStates = ns;
         s.level = newLevel;
         list[idx] = s;
-        if (newLevel > oldLevel) {
+        if (newLevel > oldLevel && !levelUpSuspendedRef.current) {
+          const studentId = s.id;
           setTimeout(() => {
-            setPendingLevelUp({ studentName: s.name, oldLevel, newLevel });
+            setPendingLevelUp({ studentId, studentName: s.name, oldLevel, newLevel });
           }, 250);
         }
         return { ...prev, [classId]: list };
@@ -212,7 +246,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   const recordSituation = useCallback<AppStore["recordSituation"]>(
     (classId, skillIds, snapshot) => {
       const cls = classes.find((c) => c.id === classId);
-      const outcome: SituationOutcome = { progressed: [], stagnated: [] };
+      const outcome: SituationOutcome = { progressed: [], stagnated: [], levelUps: [] };
       if (!cls) return outcome;
       const cycle = cls.cycle;
 
@@ -221,17 +255,35 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
         const next = list.map((stu) => {
           const s: Student = { ...stu, difficulties: [...(stu.difficulties || [])] };
           const before = snapshot[s.id] || {};
+          const oldLevel = stu.level;
+          let touched = false;
           skillIds.forEach((skillId) => {
             const meta = findSkillMeta(cycle, skillId);
             if (!meta) return;
             const beforeStars = before[skillId] ?? 0;
             const afterStars = s.skillStates[skillId] ?? 0;
+            if (afterStars !== beforeStars) touched = true;
             if (afterStars > beforeStars) {
               outcome.progressed.push({
                 studentId: s.id, studentName: s.name, skillId,
                 skillCode: meta.skill.code, before: beforeStars, after: afterStars,
               });
+              // student progressed on this skill → clear any prior difficulty for it
+              s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
+              // if still under mastery, keep the difficulty list as-is (no new entry on progression)
+              if (afterStars < MASTERY_THRESHOLD) {
+                const diff: Difficulty = {
+                  id: `${s.id}-${skillId}-${Date.now()}`,
+                  skillId,
+                  skillCode: meta.skill.code,
+                  dimension: meta.dimension,
+                  currentLevel: afterStars,
+                  date: new Date().toISOString(),
+                };
+                s.difficulties = [...s.difficulties, diff];
+              }
             } else if (afterStars < MASTERY_THRESHOLD) {
+              // stagnation — record / refresh difficulty for THIS skill only
               outcome.stagnated.push({
                 studentId: s.id, studentName: s.name, skillId,
                 skillCode: meta.skill.code, level: afterStars,
@@ -247,18 +299,47 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
               };
               s.difficulties = [...filtered, diff];
             } else {
+              // reached mastery threshold → drop any prior difficulty on this skill
               s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
             }
           });
+          // recompute level after the situation; capture level-ups for the debrief
+          if (touched) {
+            const newLevel = calculateLevelFromStars(s.skillStates, cycle);
+            s.level = newLevel;
+            if (newLevel > oldLevel) {
+              outcome.levelUps.push({
+                studentId: s.id, studentName: s.name, oldLevel, newLevel,
+              });
+            }
+          }
           return s;
         });
         return { ...prev, [classId]: next };
       });
 
+      // append to history
+      const codes = skillIds.map((id) => findSkillMeta(cls.cycle, id)?.skill.code || id);
+      const record: SituationRecord = {
+        id: `sit-${Date.now()}`,
+        date: new Date().toISOString(),
+        classId,
+        skillIds,
+        skillCodes: codes,
+        progressed: outcome.progressed,
+        stagnated: outcome.stagnated,
+        levelUps: outcome.levelUps,
+      };
+      setSituationHistory((prev) => [record, ...prev]);
+
       return outcome;
     },
     [classes]
   );
+
+  const setLevelUpSuspended = useCallback((suspended: boolean) => {
+    levelUpSuspendedRef.current = suspended;
+  }, []);
 
   const value = useMemo<AppStore>(
     () => ({
@@ -272,10 +353,12 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
       addStudent,
       removeStudent,
       recordSituation,
+      situationHistory,
+      setLevelUpSuspended,
       pendingLevelUp,
       clearLevelUp: () => setPendingLevelUp(null),
     }),
-    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, recordSituation, pendingLevelUp]
+    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, recordSituation, situationHistory, setLevelUpSuspended, pendingLevelUp]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

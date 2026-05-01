@@ -1,7 +1,7 @@
 // Class roster — grid of student "trading cards", click to open profile.
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus, Flag, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus, Flag, AlertTriangle, History } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
@@ -126,6 +126,9 @@ function ClassRoster() {
           <div className="flex items-center gap-2">
             <PopButton variant="hot" size="sm" onClick={() => navigate({ to: "/class/$classId/situation", params: { classId } })}>
               <Flag size={14} strokeWidth={3} /> Situation
+            </PopButton>
+            <PopButton variant="ghost" size="sm" onClick={() => navigate({ to: "/class/$classId/historique", params: { classId } })}>
+              <History size={14} strokeWidth={3} /> Historique
             </PopButton>
             <PopButton variant="accent" size="sm" onClick={() => navigate({ to: "/class/$classId/parcours", params: { classId } })}>
               <MapIcon size={14} strokeWidth={3} /> Parcours
@@ -282,6 +285,16 @@ function ClassRoster() {
                 <Trash2 size={12} strokeWidth={3} />
               </button>
 
+              {s.difficulties && s.difficulties.length > 0 && (
+                <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1 max-w-[60%] pointer-events-none">
+                  <div className="flex flex-wrap gap-1">
+                    {s.difficulties.slice(0, 4).map((d) => (
+                      <DifficultyDot key={d.id} difficulty={d} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-center mb-3">
                 <AvatarBlob name={s.name} hue={s.avatarHue} size={64} rank={rank.tier} />
               </div>
@@ -289,13 +302,6 @@ function ClassRoster() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                 {rank.emoji} {rank.label}
               </span>
-              {s.difficulties && s.difficulties.length > 0 && (
-                <div className="mt-2 flex flex-wrap items-center justify-center gap-1">
-                  {s.difficulties.slice(0, 5).map((d) => (
-                    <DifficultyDot key={d.id} difficulty={d} />
-                  ))}
-                </div>
-              )}
 
               <div className="mt-3 h-2 rounded-full bg-muted border-2 border-ink overflow-hidden">
                 <div className="h-full bg-gradient-sun transition-all" style={{ width: `${pct}%` }} />

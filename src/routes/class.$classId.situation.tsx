@@ -1,8 +1,11 @@
 // Mode "Situation" — live in-class evaluation cockpit.
 // Three phases: SETUP → LIVE → DEBRIEF.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Play, CheckCircle2, AlertTriangle, TrendingUp, Flag, Plus, Minus, Activity, Brain, Users } from "lucide-react";
+import {
+  ArrowLeft, Play, CheckCircle2, AlertTriangle, TrendingUp, Flag, Plus, Minus,
+  Activity, Brain, Users, SortAsc, SortDesc, Trophy, ChevronRight,
+} from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
@@ -14,6 +17,8 @@ export const Route = createFileRoute("/class/$classId/situation")({
 });
 
 type Phase = "setup" | "live" | "debrief";
+type SortMode = "name-asc" | "name-desc" | "level-asc" | "level-desc";
+type EvalFilter = "all" | "evaluated" | "pending";
 
 const DIM_META: Record<DimensionKey, { label: string; iconName: "Activity" | "Brain" | "Users"; color: string }> = {
   moteur: { label: "Motrice", iconName: "Activity", color: "bg-[oklch(0.65_0.22_25)] text-white" },
@@ -30,7 +35,7 @@ function DimIcon({ name, size = 16 }: { name: "Activity" | "Brain" | "Users"; si
 function SituationMode() {
   const { classId } = Route.useParams();
   const navigate = useNavigate();
-  const { classes, studentsByClass, ensureClass, bumpSkill, recordSituation } = useAppStore();
+  const { classes, studentsByClass, ensureClass, bumpSkill, recordSituation, setLevelUpSuspended } = useAppStore();
   const cls = classes.find((c) => c.id === classId);
 
   const [phase, setPhase] = useState<Phase>("setup");
@@ -38,9 +43,23 @@ function SituationMode() {
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<Record<string, Record<string, number>>>({});
   const [outcome, setOutcome] = useState<ReturnType<typeof recordSituation> | null>(null);
-  const [pulseKey, setPulseKey] = useState(0); // for tap micro-anim
+  const [pulseKey, setPulseKey] = useState(0);
+
+  // Live toolbar
+  const [sortMode, setSortMode] = useState<SortMode>("name-asc");
+  const [evalFilter, setEvalFilter] = useState<EvalFilter>("all");
+
+  // Debrief level-up cinematic queue (skippable)
+  const [lvlIdx, setLvlIdx] = useState(0);
+  const skipRef = useRef(false);
 
   useEffect(() => { if (classId) ensureClass(classId); }, [classId, ensureClass]);
+
+  // Suspend global level-up overlay while running a situation; release on unmount or phase change away from live.
+  useEffect(() => {
+    setLevelUpSuspended(phase === "live");
+    return () => setLevelUpSuspended(false);
+  }, [phase, setLevelUpSuspended]);
 
   const students = studentsByClass[classId] || [];
   const cycle = cls?.cycle;
@@ -54,6 +73,7 @@ function SituationMode() {
   }, [categories]);
 
   const targeted = allSkills.filter((s) => selectedSkills.includes(s.id));
+  const activeSkill = targeted.find((s) => s.id === activeSkillId);
 
   // ------- SETUP -------
   const toggleSkill = (id: string) =>
@@ -61,7 +81,6 @@ function SituationMode() {
 
   const startSituation = () => {
     if (!selectedSkills.length) return;
-    // capture BEFORE state for every student × selected skill
     const snap: Record<string, Record<string, number>> = {};
     students.forEach((s) => {
       snap[s.id] = {};
@@ -78,8 +97,34 @@ function SituationMode() {
   const finishSituation = () => {
     const result = recordSituation(classId, selectedSkills, snapshot);
     setOutcome(result);
+    setLvlIdx(0);
+    skipRef.current = false;
     setPhase("debrief");
   };
+
+  // Sorted/filtered student list for the LIVE grid
+  const liveStudents = useMemo(() => {
+    if (!activeSkillId) return [];
+    const list = students.map((s) => {
+      const stars = s.skillStates[activeSkillId] ?? 0;
+      const before = snapshot[s.id]?.[activeSkillId] ?? 0;
+      return { s, stars, before, evaluated: stars !== before };
+    });
+    const filtered = list.filter((it) => {
+      if (evalFilter === "evaluated") return it.evaluated;
+      if (evalFilter === "pending") return !it.evaluated;
+      return true;
+    });
+    filtered.sort((a, b) => {
+      switch (sortMode) {
+        case "name-asc": return a.s.name.localeCompare(b.s.name);
+        case "name-desc": return b.s.name.localeCompare(a.s.name);
+        case "level-asc": return a.stars - b.stars;
+        case "level-desc": return b.stars - a.stars;
+      }
+    });
+    return filtered;
+  }, [students, activeSkillId, snapshot, sortMode, evalFilter]);
 
   if (!cls || !categories) {
     return (
@@ -175,10 +220,10 @@ function SituationMode() {
       )}
 
       {/* ============== LIVE ============== */}
-      {phase === "live" && activeSkillId && (
-        <section className="max-w-5xl mx-auto px-4 md:px-8 py-6">
-          {/* tabs */}
-          <div className="flex flex-wrap gap-2 mb-5">
+      {phase === "live" && activeSkill && (
+        <section className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+          {/* Skill tabs */}
+          <div className="flex flex-wrap gap-2 mb-4">
             {targeted.map((sk) => {
               const meta = DIM_META[sk.dimension];
               const isActive = sk.id === activeSkillId;
@@ -200,69 +245,135 @@ function SituationMode() {
             })}
           </div>
 
-          {/* current skill heading */}
-          {(() => {
-            const sk = targeted.find((s) => s.id === activeSkillId)!;
-            return (
-              <div className="pop-card p-4 mb-4">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">Compétence évaluée</span>
-                <h2 className="font-display text-xl leading-snug">{sk.code} — {sk.name}</h2>
-              </div>
-            );
-          })()}
+          {/* Heading + criteria */}
+          <div className="pop-card p-4 mb-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">Compétence évaluée</span>
+            <h2 className="font-display text-xl leading-snug mb-3">{activeSkill.code} — {activeSkill.name}</h2>
 
-          {/* student rows */}
-          <div className="space-y-2">
-            {students.map((s) => {
-              const stars = s.skillStates[activeSkillId] ?? 0;
-              const before = snapshot[s.id]?.[activeSkillId] ?? 0;
+            <div className="border-t-2 border-dashed border-ink/15 pt-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-ink-soft mb-2">Critères d'acquisition (paliers)</p>
+              <ol className="grid md:grid-cols-2 gap-1.5">
+                {activeSkill.levels.map((lvl, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs font-semibold leading-snug">
+                    <span className="shrink-0 inline-grid place-items-center w-5 h-5 rounded-full bg-gradient-sun border-[2px] border-ink font-display text-[10px]">
+                      {i + 1}
+                    </span>
+                    <span>{lvl}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+
+          {/* Toolbar — tri + filtre */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">Tri</span>
+            {([
+              { k: "name-asc", label: "A→Z", icon: <SortAsc size={12} strokeWidth={3} /> },
+              { k: "name-desc", label: "Z→A", icon: <SortDesc size={12} strokeWidth={3} /> },
+              { k: "level-asc", label: "Niv ↑", icon: <SortAsc size={12} strokeWidth={3} /> },
+              { k: "level-desc", label: "Niv ↓", icon: <SortDesc size={12} strokeWidth={3} /> },
+            ] as const).map((opt) => (
+              <button
+                key={opt.k}
+                onClick={() => setSortMode(opt.k)}
+                className={cn(
+                  "px-2.5 py-1 rounded-xl border-[2.5px] border-ink font-display text-[11px] tracking-widest inline-flex items-center gap-1 transition-all",
+                  sortMode === opt.k ? "bg-secondary text-secondary-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+                )}
+              >
+                {opt.icon} {opt.label}
+              </button>
+            ))}
+
+            <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">État</span>
+            {([
+              { k: "all", label: "Tous" },
+              { k: "evaluated", label: "Évalués" },
+              { k: "pending", label: "Non évalués" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.k}
+                onClick={() => setEvalFilter(opt.k)}
+                className={cn(
+                  "px-2.5 py-1 rounded-xl border-[2.5px] border-ink font-display text-[11px] tracking-widest transition-all",
+                  evalFilter === opt.k ? "bg-primary text-primary-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+
+            <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+              {liveStudents.length} / {students.length} élèves
+            </span>
+          </div>
+
+          {/* Compact student grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+            {liveStudents.map(({ s, stars, before, evaluated }) => {
               const moved = stars - before;
               return (
-                <div key={s.id} className="pop-card p-3 flex items-center gap-3">
-                  <AvatarBlob name={s.name} hue={s.avatarHue} size={44} rank="rookie" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-base truncate">{s.name}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      {Array.from({ length: MAX_SKILL_STARS }).map((_, i) => (
-                        <span
-                          key={i}
-                          className={cn(
-                            "w-3 h-3 rounded-full border-[2px] border-ink transition-all",
-                            i < stars ? "bg-gradient-sun" : "bg-surface-2"
-                          )}
-                        />
-                      ))}
-                      {moved !== 0 && (
-                        <span className={cn(
-                          "ml-2 text-[10px] font-bold uppercase tracking-widest",
-                          moved > 0 ? "text-secondary" : "text-hot"
-                        )}>
-                          {moved > 0 ? `+${moved}` : moved}
-                        </span>
-                      )}
+                <div
+                  key={s.id}
+                  className={cn(
+                    "pop-card p-2.5 flex flex-col gap-1.5 relative",
+                    evaluated && "ring-2 ring-secondary/60"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <AvatarBlob name={s.name} hue={s.avatarHue} size={32} rank="rookie" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display text-sm leading-tight truncate">{s.name}</p>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-ink-soft">
+                        Niv. {stars}{moved !== 0 && (
+                          <span className={cn("ml-1", moved > 0 ? "text-secondary" : "text-hot")}>
+                            {moved > 0 ? `+${moved}` : moved}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+
+                  {/* dots */}
+                  <div className="flex items-center gap-0.5 justify-center">
+                    {Array.from({ length: MAX_SKILL_STARS }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "w-2.5 h-2.5 rounded-full border-[1.5px] border-ink transition-all",
+                          i < stars ? "bg-gradient-sun" : "bg-surface-2"
+                        )}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 mt-0.5">
                     <button
-                      onClick={() => { bumpSkill(classId, s.id, activeSkillId, "down"); setPulseKey((k) => k + 1); }}
+                      onClick={() => { bumpSkill(classId, s.id, activeSkill.id, "down"); setPulseKey((k) => k + 1); }}
                       disabled={stars <= 0}
-                      className="w-12 h-12 rounded-2xl border-[3px] border-ink bg-surface hover:bg-hot hover:text-hot-foreground active:translate-y-[2px] transition-all grid place-items-center disabled:opacity-40"
+                      className="flex-1 h-9 rounded-xl border-[2.5px] border-ink bg-surface hover:bg-hot hover:text-hot-foreground active:translate-y-[2px] transition-all grid place-items-center disabled:opacity-40"
                       aria-label="Diminuer"
                     >
-                      <Minus size={20} strokeWidth={3.5} />
+                      <Minus size={16} strokeWidth={3.5} />
                     </button>
                     <button
-                      onClick={() => { bumpSkill(classId, s.id, activeSkillId, "up"); setPulseKey((k) => k + 1); }}
+                      onClick={() => { bumpSkill(classId, s.id, activeSkill.id, "up"); setPulseKey((k) => k + 1); }}
                       disabled={stars >= MAX_SKILL_STARS}
-                      className="w-14 h-14 rounded-2xl border-[3px] border-ink bg-primary text-primary-foreground shadow-pop-sm hover:-translate-y-0.5 hover:shadow-pop active:translate-y-[3px] active:shadow-none transition-all grid place-items-center disabled:opacity-40"
+                      className="flex-[1.4] h-9 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none transition-all grid place-items-center disabled:opacity-40"
                       aria-label="Augmenter"
                     >
-                      <Plus size={26} strokeWidth={3.5} />
+                      <Plus size={18} strokeWidth={3.5} />
                     </button>
                   </div>
                 </div>
               );
             })}
+            {liveStudents.length === 0 && (
+              <div className="col-span-full text-center py-12 font-semibold text-ink-soft">
+                Aucun élève ne correspond au filtre.
+              </div>
+            )}
           </div>
           <div key={pulseKey} className="sr-only">tap</div>
         </section>
@@ -270,57 +381,141 @@ function SituationMode() {
 
       {/* ============== DEBRIEF ============== */}
       {phase === "debrief" && outcome && (
-        <section className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-5">
-          <div className="pop-card p-5 bg-gradient-to-br from-secondary/20 to-transparent">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="text-secondary" strokeWidth={3} />
-              <h2 className="font-display text-2xl">Progressions ({outcome.progressed.length})</h2>
-            </div>
-            {outcome.progressed.length === 0 ? (
-              <p className="text-sm font-semibold text-ink-soft">Aucune progression enregistrée pendant cette situation.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {outcome.progressed.map((p, i) => (
-                  <li key={i} className="text-sm font-semibold flex items-center gap-2">
-                    <span className="font-display px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px]">{p.skillCode}</span>
-                    <span>{p.studentName}</span>
-                    <span className="text-ink-soft">N{p.before} → N{p.after}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <>
+          {/* Skippable level-up cinematic — ONLY for the actual concerned student, sequentially */}
+          {!skipRef.current && outcome.levelUps.length > 0 && lvlIdx < outcome.levelUps.length && (
+            <DebriefLevelUp
+              event={outcome.levelUps[lvlIdx]}
+              onNext={() => setLvlIdx((i) => i + 1)}
+              onSkipAll={() => { skipRef.current = true; setLvlIdx(outcome.levelUps.length); }}
+            />
+          )}
 
-          <div className="pop-card p-5 bg-gradient-to-br from-hot/15 to-transparent">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="text-hot" strokeWidth={3} />
-              <h2 className="font-display text-2xl">Vigilance · Difficultés ({outcome.stagnated.length})</h2>
-            </div>
-            {outcome.stagnated.length === 0 ? (
-              <p className="text-sm font-semibold text-ink-soft">Aucune stagnation détectée.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {outcome.stagnated.map((p, i) => (
-                  <li key={i} className="text-sm font-semibold flex items-center gap-2">
-                    <span className="font-display px-2 py-0.5 rounded-full bg-hot text-hot-foreground text-[10px]">{p.skillCode}</span>
-                    <span>{p.studentName}</span>
-                    <span className="text-ink-soft">bloqué N{p.level}</span>
-                  </li>
-                ))}
-              </ul>
+          <section className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-5">
+            {outcome.levelUps.length > 0 && (
+              <div className="pop-card p-5 bg-gradient-to-br from-primary/15 to-transparent">
+                <div className="flex items-center gap-2 mb-2">
+                  <Trophy className="text-primary" strokeWidth={3} />
+                  <h2 className="font-display text-2xl">Niveaux gagnés ({outcome.levelUps.length})</h2>
+                </div>
+                <ul className="space-y-1.5">
+                  {outcome.levelUps.map((p, i) => (
+                    <li key={i} className="text-sm font-semibold flex items-center gap-2">
+                      <span>{p.studentName}</span>
+                      <span className="text-ink-soft">Niv {p.oldLevel} → {p.newLevel}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-          </div>
 
-          <div className="flex justify-center gap-3 pt-2">
-            <PopButton variant="ghost" size="md" onClick={() => { setPhase("setup"); setOutcome(null); setSelectedSkills([]); }}>
-              Nouvelle situation
-            </PopButton>
-            <PopButton variant="primary" size="md" onClick={() => navigate({ to: "/class/$classId", params: { classId } })}>
-              Retour à la classe
-            </PopButton>
-          </div>
-        </section>
+            <div className="pop-card p-5 bg-gradient-to-br from-secondary/20 to-transparent">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="text-secondary" strokeWidth={3} />
+                <h2 className="font-display text-2xl">Progressions ({outcome.progressed.length})</h2>
+              </div>
+              {outcome.progressed.length === 0 ? (
+                <p className="text-sm font-semibold text-ink-soft">Aucune progression enregistrée pendant cette situation.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {outcome.progressed.map((p, i) => (
+                    <li key={i} className="text-sm font-semibold flex items-center gap-2">
+                      <span className="font-display px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px]">{p.skillCode}</span>
+                      <span>{p.studentName}</span>
+                      <span className="text-ink-soft">N{p.before} → N{p.after}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="pop-card p-5 bg-gradient-to-br from-hot/15 to-transparent">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="text-hot" strokeWidth={3} />
+                <h2 className="font-display text-2xl">Vigilance · Difficultés ({outcome.stagnated.length})</h2>
+              </div>
+              {outcome.stagnated.length === 0 ? (
+                <p className="text-sm font-semibold text-ink-soft">Aucune stagnation détectée.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {outcome.stagnated.map((p, i) => (
+                    <li key={i} className="text-sm font-semibold flex items-center gap-2">
+                      <span className="font-display px-2 py-0.5 rounded-full bg-hot text-hot-foreground text-[10px]">{p.skillCode}</span>
+                      <span>{p.studentName}</span>
+                      <span className="text-ink-soft">bloqué N{p.level}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="flex justify-center gap-3 pt-2">
+              <PopButton variant="ghost" size="md" onClick={() => { setPhase("setup"); setOutcome(null); setSelectedSkills([]); }}>
+                Nouvelle situation
+              </PopButton>
+              <PopButton variant="primary" size="md" onClick={() => navigate({ to: "/class/$classId", params: { classId } })}>
+                Retour à la classe
+              </PopButton>
+            </div>
+          </section>
+        </>
       )}
     </main>
+  );
+}
+
+/** Skippable level-up overlay shown during debrief, scoped to a single student. */
+function DebriefLevelUp({
+  event, onNext, onSkipAll,
+}: {
+  event: { studentId: string; studentName: string; oldLevel: number; newLevel: number };
+  onNext: () => void;
+  onSkipAll: () => void;
+}) {
+  return (
+    <div
+      onClick={onNext}
+      className="fixed inset-0 z-[7000] grid place-items-center bg-ink/85 backdrop-blur-md cursor-pointer animate-fade-in select-none overflow-hidden"
+      role="dialog"
+      aria-label="Niveau gagné"
+    >
+      <div className="text-center px-6 animate-pop-in">
+        <div className="relative inline-grid place-items-center mb-6">
+          <div className="absolute inset-0 rounded-full bg-primary/40 blur-3xl scale-150" />
+          <div className="relative grid place-items-center w-32 h-32 rounded-full bg-gradient-sun border-[6px] border-ink shadow-pop-lg animate-bounce-soft">
+            <Trophy size={64} className="text-ink" strokeWidth={2.5} />
+          </div>
+        </div>
+
+        <p className="font-display text-2xl md:text-3xl tracking-widest text-secondary mb-1">
+          ✨ Level Up ! ✨
+        </p>
+        <h1 className="font-display text-5xl md:text-7xl text-surface drop-shadow-[0_4px_0_hsl(var(--ink))] mb-6">
+          {event.studentName}
+        </h1>
+
+        <div className="inline-flex items-center gap-5 md:gap-8 bg-surface border-[4px] border-ink rounded-3xl px-6 py-5 shadow-pop-lg">
+          <div className="text-center">
+            <div className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider">Avant</div>
+            <div className="font-display text-4xl text-muted-foreground">N{event.oldLevel}</div>
+          </div>
+          <ChevronRight size={36} className="text-primary animate-pulse" strokeWidth={3} />
+          <div className="text-center">
+            <div className="text-[10px] font-bold uppercase text-accent tracking-wider">Nouveau</div>
+            <div className="font-display text-6xl text-gradient-sun">N{event.newLevel}</div>
+          </div>
+        </div>
+
+        <p className="text-surface/70 text-[10px] uppercase tracking-widest mt-6">
+          Touche pour continuer ·{" "}
+          <button
+            onClick={(e) => { e.stopPropagation(); onSkipAll(); }}
+            className="underline hover:text-surface"
+          >
+            Tout passer
+          </button>
+        </p>
+      </div>
+    </div>
   );
 }
