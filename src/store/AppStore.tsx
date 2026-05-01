@@ -136,7 +136,9 @@ const slugifyClassName = (name: string, existing: string[]): string => {
 export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   const [classes, setClasses] = useState<ClassConfig[]>(() => loadClasses());
   const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>(() => loadStudents());
+  const [situationHistory, setSituationHistory] = useState<SituationRecord[]>(() => loadHistory());
   const [pendingLevelUp, setPendingLevelUp] = useState<LevelUpEvent | null>(null);
+  const levelUpSuspendedRef = useRef(false);
 
   // persist
   useEffect(() => {
@@ -145,6 +147,9 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     try { localStorage.setItem(LS_STUDENTS, JSON.stringify(studentsByClass)); } catch { /* noop */ }
   }, [studentsByClass]);
+  useEffect(() => {
+    try { localStorage.setItem(LS_HISTORY, JSON.stringify(situationHistory)); } catch { /* noop */ }
+  }, [situationHistory]);
 
   const ensureClass = useCallback((classId: string) => {
     setStudentsByClass((prev) => {
