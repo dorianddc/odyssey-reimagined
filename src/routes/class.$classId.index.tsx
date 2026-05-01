@@ -289,6 +289,13 @@ function ClassRoster() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
                 {rank.emoji} {rank.label}
               </span>
+              {s.difficulties && s.difficulties.length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-1">
+                  {s.difficulties.slice(0, 5).map((d) => (
+                    <DifficultyDot key={d.id} difficulty={d} />
+                  ))}
+                </div>
+              )}
 
               <div className="mt-3 h-2 rounded-full bg-muted border-2 border-ink overflow-hidden">
                 <div className="h-full bg-gradient-sun transition-all" style={{ width: `${pct}%` }} />
