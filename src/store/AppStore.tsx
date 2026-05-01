@@ -173,7 +173,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
         gender,
         level: calculateLevelFromStars({}, cls.cycle),
         skillStates: {},
-        stagnations: [],
+        stagnations: [], difficulties: [],
         avatarHue: Math.floor(Math.random() * 360),
       };
       return { ...prev, [classId]: [...list, student] };

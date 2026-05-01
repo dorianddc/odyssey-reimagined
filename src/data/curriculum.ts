@@ -361,7 +361,7 @@ export const generateClassStudents = (classId: string): Student[] => {
       gender,
       level: calculateLevelFromStars(skillStates, cycle),
       skillStates,
-      stagnations: [],
+      stagnations: [], difficulties: [],
       avatarHue: Math.floor(rand() * 360),
     };
   };
