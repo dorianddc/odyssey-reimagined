@@ -6,8 +6,11 @@ import {
   CURRICULUM,
   calculateLevelFromStars,
   generateClassStudents,
+  findSkillMeta,
+  MASTERY_THRESHOLD,
   type Cycle,
   type Student,
+  type Difficulty,
 } from "@/data/curriculum";
 
 interface LevelUpEvent {
