@@ -69,8 +69,21 @@ const Ctx = createContext<AppStore | null>(null);
 
 const LS_CLASSES = "db_classes_v1";
 const LS_STUDENTS = "db_students_v1";
+const LS_HISTORY = "db_situation_history_v1";
 
 const EMOJI_POOL = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "💎", "🦁", "🐻", "🐯", "🦅", "🐺", "🦄", "🐲", "🌟"];
+
+const loadHistory = (): SituationRecord[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LS_HISTORY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
 
 const loadClasses = (): ClassConfig[] => {
   if (typeof window === "undefined") return DEFAULT_CLASSES;
