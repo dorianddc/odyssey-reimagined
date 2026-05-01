@@ -14,6 +14,7 @@ import {
 } from "@/data/curriculum";
 
 interface LevelUpEvent {
+  studentId: string;
   studentName: string;
   oldLevel: number;
   newLevel: number;
@@ -29,6 +30,18 @@ export interface ClassConfig {
 interface SituationOutcome {
   progressed: { studentId: string; studentName: string; skillId: string; skillCode: string; before: number; after: number }[];
   stagnated: { studentId: string; studentName: string; skillId: string; skillCode: string; level: number }[];
+  levelUps: { studentId: string; studentName: string; oldLevel: number; newLevel: number }[];
+}
+
+export interface SituationRecord {
+  id: string;
+  date: string;
+  classId: string;
+  skillIds: string[];
+  skillCodes: string[];
+  progressed: SituationOutcome["progressed"];
+  stagnated: SituationOutcome["stagnated"];
+  levelUps: SituationOutcome["levelUps"];
 }
 
 interface AppStore {
