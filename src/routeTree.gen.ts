@@ -14,7 +14,6 @@ import { Route as ClassClassIdIndexRouteImport } from './routes/class.$classId.i
 import { Route as ClassClassIdSituationRouteImport } from './routes/class.$classId.situation'
 import { Route as ClassClassIdParcoursRouteImport } from './routes/class.$classId.parcours'
 import { Route as ClassClassIdStudentStudentIdRouteImport } from './routes/class.$classId.student.$studentId'
-import { Route as ClassClassIdSituationRouteImport } from './routes/class.$classId.situation'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,11 +33,6 @@ const ClassClassIdSituationRoute = ClassClassIdSituationRouteImport.update({
 const ClassClassIdParcoursRoute = ClassClassIdParcoursRouteImport.update({
   id: '/class/$classId/parcours',
   path: '/class/$classId/parcours',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClassClassIdSituationRoute = ClassClassIdSituationRouteImport.update({
-  id: '/class/$classId/situation',
-  path: '/class/$classId/situation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClassClassIdStudentStudentIdRoute =
