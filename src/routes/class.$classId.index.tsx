@@ -1,11 +1,12 @@
 // Class roster — grid of student "trading cards", click to open profile.
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus } from "lucide-react";
+import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus, Activity, Brain, Flag, AlertTriangle } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
-import { getRankBadge, MAX_LEVEL } from "@/data/curriculum";
+import { DifficultyDot } from "@/components/game/DifficultyDot";
+import { getRankBadge, MAX_LEVEL, CURRICULUM, type DimensionKey } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
