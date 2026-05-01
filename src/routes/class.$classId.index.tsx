@@ -29,6 +29,11 @@ function ClassRoster() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [genderFilter, setGenderFilter] = useState<"All" | "F" | "M">("All");
 
+  // Pédagogical filters
+  const [dimFilter, setDimFilter] = useState<"all" | DimensionKey>("all");
+  const [urgencyFilter, setUrgencyFilter] = useState<"all" | "high" | "low">("all");
+  const [skillFilter, setSkillFilter] = useState<string>("all");
+
   const [openAdd, setOpenAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newGender, setNewGender] = useState<"F" | "M">("F");
@@ -41,10 +46,27 @@ function ClassRoster() {
   const students = studentsByClass[classId] || [];
   const studentToDelete = students.find((s) => s.id === confirmDel);
 
+  // List of skills available for the filter dropdown (depends on cycle)
+  const skillsCatalog = useMemo(() => {
+    if (!cls) return [];
+    const cats = CURRICULUM[cls.cycle].categories;
+    return (Object.keys(cats) as DimensionKey[]).flatMap((dim) =>
+      cats[dim].skills.map((s) => ({ id: s.id, code: s.code, dimension: dim, name: s.name }))
+    );
+  }, [cls]);
+
   const filtered = useMemo(() => {
     const list = students
       .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
-      .filter((s) => genderFilter === "All" || s.gender === genderFilter);
+      .filter((s) => genderFilter === "All" || s.gender === genderFilter)
+      .filter((s) => {
+        const diffs = s.difficulties || [];
+        if (dimFilter !== "all" && !diffs.some((d) => d.dimension === dimFilter)) return false;
+        if (urgencyFilter === "high" && !diffs.some((d) => d.currentLevel <= 2)) return false;
+        if (urgencyFilter === "low" && !diffs.some((d) => d.currentLevel >= 3)) return false;
+        if (skillFilter !== "all" && !diffs.some((d) => d.skillId === skillFilter)) return false;
+        return true;
+      });
     list.sort((a, b) => {
       let va: string | number = a[sortKey];
       let vb: string | number = b[sortKey];
@@ -55,7 +77,9 @@ function ClassRoster() {
       return sortOrder === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
     });
     return list;
-  }, [students, search, genderFilter, sortKey, sortOrder]);
+  }, [students, search, genderFilter, sortKey, sortOrder, dimFilter, urgencyFilter, skillFilter]);
+
+  const anyPedagogicalFilter = dimFilter !== "all" || urgencyFilter !== "all" || skillFilter !== "all";
 
   const handleConfirmAdd = () => {
     if (!newName.trim()) return;
