@@ -196,6 +196,70 @@ function ClassRoster() {
             </button>
           ))}
         </div>
+
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pb-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-ink/15 pt-3">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">
+            <AlertTriangle size={14} strokeWidth={3} /> Filtres pédago
+          </span>
+
+          {/* Dimension */}
+          {([
+            { k: "all", label: "Toutes", cls: "bg-surface" },
+            { k: "moteur", label: "Moteur", cls: "bg-[oklch(0.65_0.22_25)] text-white" },
+            { k: "methodo", label: "Méthodo", cls: "bg-[oklch(0.82_0.18_115)] text-ink" },
+            { k: "social", label: "Social", cls: "bg-[oklch(0.65_0.18_240)] text-white" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.k}
+              onClick={() => setDimFilter(opt.k as typeof dimFilter)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl border-[2.5px] border-ink font-display text-xs tracking-widest transition-all",
+                dimFilter === opt.k ? `${opt.cls} shadow-pop-sm` : "bg-surface hover:bg-surface-2"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+
+          <span className="ml-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">Urgence</span>
+          {([
+            { k: "all", label: "Toutes" },
+            { k: "high", label: "N≤2" },
+            { k: "low", label: "N≥3" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.k}
+              onClick={() => setUrgencyFilter(opt.k as typeof urgencyFilter)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl border-[2.5px] border-ink font-display text-xs tracking-widest transition-all",
+                urgencyFilter === opt.k ? "bg-hot text-hot-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+
+          <select
+            value={skillFilter}
+            onChange={(e) => setSkillFilter(e.target.value)}
+            className="ml-2 px-3 py-1.5 rounded-xl border-[2.5px] border-ink bg-surface font-display text-xs tracking-widest"
+          >
+            <option value="all">Toute compétence</option>
+            {skillsCatalog.map((s) => (
+              <option key={s.id} value={s.id}>{s.code} · {s.dimension}</option>
+            ))}
+          </select>
+
+          {anyPedagogicalFilter && (
+            <button
+              onClick={() => { setDimFilter("all"); setUrgencyFilter("all"); setSkillFilter("all"); }}
+              className="ml-1 px-2.5 py-1.5 rounded-xl border-[2.5px] border-ink bg-surface hover:bg-surface-2 inline-flex items-center gap-1 text-xs font-display"
+              aria-label="Réinitialiser filtres"
+            >
+              <X size={12} strokeWidth={3} /> Réinit.
+            </button>
+          )}
+        </div>
       </header>
 
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
