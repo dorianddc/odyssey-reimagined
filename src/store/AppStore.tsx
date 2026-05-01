@@ -1,6 +1,6 @@
 // Lightweight global store using React context — keeps generated students per class in memory.
 // Persisted to localStorage so the teacher can manage real classes/students.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   CLASSES_CONFIG as DEFAULT_CLASSES,
   CURRICULUM,
