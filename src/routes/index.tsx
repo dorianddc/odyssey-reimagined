@@ -44,6 +44,7 @@ function Hub() {
 
   const [openAdd, setOpenAdd] = useState(false);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [recapId, setRecapId] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [cycle, setCycle] = useState<Cycle>("cycle4");
