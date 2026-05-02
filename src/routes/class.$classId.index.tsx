@@ -105,7 +105,7 @@ function ClassRoster() {
   return (
     <main className="min-h-screen pb-20">
       <header className="sticky top-0 z-20 bg-background/85 backdrop-blur-xl border-b-[3px] border-ink">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex flex-wrap items-center gap-4 justify-between">
+        <div className="w-full max-w-[95vw] mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center gap-4 justify-between">
           <div className="flex items-center gap-4">
             <PopButton variant="ghost" size="sm" onClick={() => navigate({ to: "/" })}>
               <ArrowLeft size={16} strokeWidth={3} /> Hub
@@ -150,7 +150,7 @@ function ClassRoster() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pb-4 flex flex-wrap items-center gap-2">
+        <div className="w-full max-w-[95vw] mx-auto px-4 md:px-6 pb-4 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">
             <Filter size={14} strokeWidth={3} /> Tri
           </span>
@@ -200,7 +200,7 @@ function ClassRoster() {
           ))}
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pb-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-ink/15 pt-3">
+        <div className="w-full max-w-[95vw] mx-auto px-4 md:px-6 pb-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-ink/15 pt-3">
           <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">
             <AlertTriangle size={14} strokeWidth={3} /> Filtres pédago
           </span>
@@ -265,7 +265,7 @@ function ClassRoster() {
         </div>
       </header>
 
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <section className="w-full max-w-[95vw] mx-auto px-4 md:px-6 py-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {filtered.map((s, i) => {
           const rank = getRankBadge(s.level);
           const pct = Math.min(100, Math.round((s.level / MAX_LEVEL) * 100));
