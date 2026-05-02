@@ -92,7 +92,7 @@ function HistoriquePage() {
                     <p className="text-xs text-ink-soft font-semibold">—</p>
                   ) : (
                     <ul className="space-y-1">
-                      {r.progressed.map((p, i) => (
+                      {[...r.progressed].sort((a, b) => a.before - b.before || a.after - b.after).map((p, i) => (
                         <li key={i} className="text-xs font-semibold flex items-center gap-1.5">
                           <span className="font-display px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[9px]">{p.skillCode}</span>
                           <span className="truncate">{p.studentName}</span>

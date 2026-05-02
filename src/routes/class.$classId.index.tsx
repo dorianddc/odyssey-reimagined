@@ -6,7 +6,7 @@ import { useAppStore } from "@/store/AppStore";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
 import { DifficultyDot } from "@/components/game/DifficultyDot";
-import { getRankBadge, MAX_LEVEL, CURRICULUM, type DimensionKey } from "@/data/curriculum";
+import { getRankBadge, MAX_LEVEL, CURRICULUM, RANK_TIERS, tierForLevel, type DimensionKey } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -105,7 +105,7 @@ function ClassRoster() {
   return (
     <main className="min-h-screen pb-20">
       <header className="sticky top-0 z-20 bg-background/85 backdrop-blur-xl border-b-[3px] border-ink">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex flex-wrap items-center gap-4 justify-between">
+        <div className="w-full max-w-[95vw] mx-auto px-4 md:px-6 py-4 flex flex-wrap items-center gap-4 justify-between">
           <div className="flex items-center gap-4">
             <PopButton variant="ghost" size="sm" onClick={() => navigate({ to: "/" })}>
               <ArrowLeft size={16} strokeWidth={3} /> Hub
@@ -150,7 +150,7 @@ function ClassRoster() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pb-4 flex flex-wrap items-center gap-2">
+        <div className="w-full max-w-[95vw] mx-auto px-4 md:px-6 pb-4 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">
             <Filter size={14} strokeWidth={3} /> Tri
           </span>
@@ -200,7 +200,7 @@ function ClassRoster() {
           ))}
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pb-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-ink/15 pt-3">
+        <div className="w-full max-w-[95vw] mx-auto px-4 md:px-6 pb-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-ink/15 pt-3">
           <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-ink-soft mr-1">
             <AlertTriangle size={14} strokeWidth={3} /> Filtres pédago
           </span>
@@ -265,78 +265,125 @@ function ClassRoster() {
         </div>
       </header>
 
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {filtered.map((s, i) => {
+      {(() => {
+        const renderCard = (s: typeof filtered[number], i: number) => {
           const rank = getRankBadge(s.level);
           const pct = Math.min(100, Math.round((s.level / MAX_LEVEL) * 100));
           return (
             <div
               key={s.id}
-              className="pop-card-interactive p-4 text-center group animate-pop-in relative"
-              style={{ animationDelay: `${Math.min(i * 25, 600)}ms` }}
+              className="pop-card-interactive p-3 text-center group animate-pop-in relative"
+              style={{ animationDelay: `${Math.min(i * 15, 400)}ms` }}
               onClick={() => navigate({ to: "/class/$classId/student/$studentId", params: { classId, studentId: s.id } })}
             >
               <button
                 onClick={(e) => { e.stopPropagation(); setConfirmDel(s.id); }}
-                className="absolute top-2 right-2 z-10 w-7 h-7 grid place-items-center rounded-full bg-surface border-[2px] border-ink shadow-pop-sm hover:bg-hot hover:text-hot-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1.5 right-1.5 z-10 w-6 h-6 grid place-items-center rounded-full bg-surface border-[2px] border-ink shadow-pop-sm hover:bg-hot hover:text-hot-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-label={`Supprimer ${s.name}`}
                 title="Supprimer l'élève"
               >
-                <Trash2 size={12} strokeWidth={3} />
+                <Trash2 size={10} strokeWidth={3} />
               </button>
 
               {s.difficulties && s.difficulties.length > 0 && (
-                <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1 max-w-[60%] pointer-events-none">
-                  <div className="flex flex-wrap gap-1">
-                    {s.difficulties.slice(0, 4).map((d) => (
+                <div className="absolute top-1.5 left-1.5 z-10 flex flex-col items-start gap-1 max-w-[60%] pointer-events-none">
+                  <div className="flex flex-wrap gap-0.5">
+                    {s.difficulties.slice(0, 3).map((d) => (
                       <DifficultyDot key={d.id} difficulty={d} />
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-center mb-3">
-                <AvatarBlob name={s.name} hue={s.avatarHue} size={64} rank={rank.tier} />
+              <div className="flex justify-center mb-2">
+                <AvatarBlob name={s.name} hue={s.avatarHue} size={48} rank={rank.tier} />
               </div>
-              <h3 className="font-display text-lg leading-none truncate">{s.name}</h3>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+              <h3 className="font-display text-sm leading-none truncate">{s.name}</h3>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-ink-soft">
                 {rank.emoji} {rank.label}
               </span>
 
-              <div className="mt-3 h-2 rounded-full bg-muted border-2 border-ink overflow-hidden">
+              <div className="mt-2 h-1.5 rounded-full bg-muted border-2 border-ink overflow-hidden">
                 <div className="h-full bg-gradient-sun transition-all" style={{ width: `${pct}%` }} />
               </div>
-              <div className="mt-1.5 flex justify-between items-center text-[10px] font-bold">
-                <span className="text-ink-soft">N {s.level}</span>
+              <div className="mt-1 flex justify-between items-center text-[9px] font-bold">
+                <span className="text-ink-soft">N{s.level}</span>
                 <span className="text-primary">/{MAX_LEVEL}</span>
               </div>
             </div>
           );
-        })}
+        };
 
-        <button
-          onClick={() => setOpenAdd(true)}
-          className="rounded-[var(--radius)] border-[3px] border-dashed border-ink/40 bg-surface/50 hover:bg-surface hover:border-ink min-h-[195px] grid place-items-center group transition-all hover:shadow-pop-sm"
-        >
-          <div className="text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl border-[3px] border-ink bg-primary text-primary-foreground grid place-items-center shadow-pop-sm group-hover:rotate-90 transition-transform">
-              <Plus size={24} strokeWidth={3} />
-            </div>
-            <p className="mt-2 font-display text-base tracking-wide">Nouvel élève</p>
-          </div>
-        </button>
+        const gridCls = "grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3";
 
-        {filtered.length === 0 && students.length > 0 && (
-          <div className="col-span-full text-center py-16 font-semibold text-ink-soft">
-            Aucun élève ne correspond à ces filtres.
-          </div>
-        )}
-        {students.length === 0 && (
-          <div className="col-span-full text-center py-16 font-semibold text-ink-soft">
-            Aucun élève dans cette classe. Cliquez sur « Nouvel élève » pour commencer.
-          </div>
-        )}
-      </section>
+        if (sortKey === "level" && filtered.length > 0) {
+          return (
+            <section className="w-full max-w-[95vw] mx-auto px-4 md:px-6 py-6 space-y-6">
+              {RANK_TIERS.map((tier) => {
+                const group = filtered.filter((s) => s.level >= tier.range[0] && s.level <= tier.range[1]);
+                if (group.length === 0) return null;
+                return (
+                  <div key={tier.tier}>
+                    <div className={cn("flex items-center gap-3 mb-3 px-4 py-2 rounded-2xl border-[3px] border-ink shadow-pop-sm", tier.headerCls)}>
+                      <span className="text-2xl" aria-hidden>{tier.emoji}</span>
+                      <h2 className="font-display text-xl md:text-2xl tracking-wider uppercase">{tier.label}</h2>
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">
+                        Niv {tier.range[0]}–{tier.range[1]}
+                      </span>
+                      <span className="ml-auto font-display text-sm">
+                        {group.length} élève{group.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className={gridCls}>
+                      {group.map((s, i) => renderCard(s, i))}
+                    </div>
+                  </div>
+                );
+              })}
+              <button
+                onClick={() => setOpenAdd(true)}
+                className="w-full rounded-[var(--radius)] border-[3px] border-dashed border-ink/40 bg-surface/50 hover:bg-surface hover:border-ink py-6 grid place-items-center group transition-all hover:shadow-pop-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl border-[3px] border-ink bg-primary text-primary-foreground grid place-items-center shadow-pop-sm group-hover:rotate-90 transition-transform">
+                    <Plus size={18} strokeWidth={3} />
+                  </div>
+                  <p className="font-display text-base tracking-wide">Nouvel élève</p>
+                </div>
+              </button>
+            </section>
+          );
+        }
+
+        return (
+          <section className={cn("w-full max-w-[95vw] mx-auto px-4 md:px-6 py-6", gridCls)}>
+            {filtered.map((s, i) => renderCard(s, i))}
+
+            <button
+              onClick={() => setOpenAdd(true)}
+              className="rounded-[var(--radius)] border-[3px] border-dashed border-ink/40 bg-surface/50 hover:bg-surface hover:border-ink min-h-[155px] grid place-items-center group transition-all hover:shadow-pop-sm"
+            >
+              <div className="text-center">
+                <div className="w-10 h-10 mx-auto rounded-2xl border-[3px] border-ink bg-primary text-primary-foreground grid place-items-center shadow-pop-sm group-hover:rotate-90 transition-transform">
+                  <Plus size={18} strokeWidth={3} />
+                </div>
+                <p className="mt-1.5 font-display text-sm tracking-wide">Nouvel élève</p>
+              </div>
+            </button>
+
+            {filtered.length === 0 && students.length > 0 && (
+              <div className="col-span-full text-center py-16 font-semibold text-ink-soft">
+                Aucun élève ne correspond à ces filtres.
+              </div>
+            )}
+            {students.length === 0 && (
+              <div className="col-span-full text-center py-16 font-semibold text-ink-soft">
+                Aucun élève dans cette classe. Cliquez sur « Nouvel élève » pour commencer.
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       <button
         onClick={() => setOpenAdd(true)}

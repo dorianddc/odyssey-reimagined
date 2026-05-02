@@ -1,4 +1,4 @@
-export const MAX_LEVEL = 24;
+export const MAX_LEVEL = 22;
 
 export const CLASSES_CONFIG = [
   { id: '6A', name: '6ème A', cycle: 'cycle3' as const }, { id: '6B', name: '6ème B', cycle: 'cycle3' as const },

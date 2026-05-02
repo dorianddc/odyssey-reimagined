@@ -1,7 +1,7 @@
 // Badminton curriculum + game logic for Cycle 3 (6e) & Cycle 4 (5/4/3e)
 // Adapted from the user's original Gemini code.
 
-export const MAX_LEVEL = 24;
+export const MAX_LEVEL = 22;
 
 export type Cycle = "cycle3" | "cycle4";
 export type DimensionKey = "moteur" | "methodo" | "social";
@@ -372,8 +372,23 @@ export const generateClassStudents = (classId: string): Student[] => {
 };
 
 export const getRankBadge = (level: number): { label: string; tier: "rookie" | "pro" | "elite" | "legend"; emoji: string } => {
-  if (level >= 20) return { label: "Légende", tier: "legend", emoji: "👑" };
-  if (level >= 14) return { label: "Élite", tier: "elite", emoji: "💎" };
-  if (level >= 8) return { label: "Pro", tier: "pro", emoji: "🔥" };
+  if (level >= 18) return { label: "Légende", tier: "legend", emoji: "👑" };
+  if (level >= 13) return { label: "Élite", tier: "elite", emoji: "💎" };
+  if (level >= 7) return { label: "Pro", tier: "pro", emoji: "🔥" };
   return { label: "Rookie", tier: "rookie", emoji: "⭐" };
 };
+
+// Tier ranges and visual styles for grouped roster view.
+export const RANK_TIERS = [
+  { tier: "rookie", label: "Rookie", emoji: "⭐", range: [1, 6] as const,
+    headerCls: "bg-gradient-to-r from-[oklch(0.55_0.13_55)] to-[oklch(0.72_0.14_70)] text-white" },
+  { tier: "pro", label: "Pro", emoji: "🔥", range: [7, 12] as const,
+    headerCls: "bg-gradient-to-r from-[oklch(0.55_0.10_240)] to-[oklch(0.78_0.05_250)] text-white" },
+  { tier: "elite", label: "Élite", emoji: "💎", range: [13, 17] as const,
+    headerCls: "bg-gradient-to-r from-[oklch(0.45_0.12_25)] to-[oklch(0.78_0.16_85)] text-white" },
+  { tier: "legend", label: "Légende", emoji: "👑", range: [18, 22] as const,
+    headerCls: "bg-gradient-to-r from-[oklch(0.85_0.02_280)] to-[oklch(0.95_0.01_60)] text-ink" },
+] as const;
+
+export const tierForLevel = (level: number): typeof RANK_TIERS[number] =>
+  RANK_TIERS.find((t) => level >= t.range[0] && level <= t.range[1]) || RANK_TIERS[0];

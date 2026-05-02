@@ -187,6 +187,10 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
         const newLevel = calculateLevelFromStars(ns, cycle);
         s.skillStates = ns;
         s.level = newLevel;
+        // Manual progression "up" clears any standing difficulty for this skill.
+        if (dir === "up" && Array.isArray(s.difficulties) && s.difficulties.length) {
+          s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
+        }
         list[idx] = s;
         if (newLevel > oldLevel && !levelUpSuspendedRef.current) {
           const studentId = s.id;

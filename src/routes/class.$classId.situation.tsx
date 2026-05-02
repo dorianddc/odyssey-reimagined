@@ -9,7 +9,7 @@ import {
 import { useAppStore } from "@/store/AppStore";
 import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
-import { CURRICULUM, type DimensionKey, MAX_SKILL_STARS } from "@/data/curriculum";
+import { CURRICULUM, type DimensionKey, MAX_SKILL_STARS, findSkillMeta, type Student } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/class/$classId/situation")({
@@ -409,25 +409,12 @@ function SituationMode() {
               </div>
             )}
 
-            <div className="pop-card p-5 bg-gradient-to-br from-secondary/20 to-transparent">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="text-secondary" strokeWidth={3} />
-                <h2 className="font-display text-2xl">Progressions ({outcome.progressed.length})</h2>
-              </div>
-              {outcome.progressed.length === 0 ? (
-                <p className="text-sm font-semibold text-ink-soft">Aucune progression enregistrée pendant cette situation.</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {outcome.progressed.map((p, i) => (
-                    <li key={i} className="text-sm font-semibold flex items-center gap-2">
-                      <span className="font-display px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px]">{p.skillCode}</span>
-                      <span>{p.studentName}</span>
-                      <span className="text-ink-soft">N{p.before} → N{p.after}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <DebriefProgressList
+              progressed={outcome.progressed}
+              students={students}
+              cycle={cycle!}
+            />
+            {/* keep stagnated section below — replaced by DebriefProgressList for progressions */}
 
             <div className="pop-card p-5 bg-gradient-to-br from-hot/15 to-transparent">
               <div className="flex items-center gap-2 mb-2">
@@ -516,6 +503,107 @@ function DebriefLevelUp({
           </button>
         </p>
       </div>
+    </div>
+  );
+}
+
+interface ProgressedItem {
+  studentId: string;
+  studentName: string;
+  skillId: string;
+  skillCode: string;
+  before: number;
+  after: number;
+}
+
+function DebriefProgressList({
+  progressed, students, cycle,
+}: {
+  progressed: ProgressedItem[];
+  students: Student[];
+  cycle: "cycle3" | "cycle4";
+}) {
+  const [genderFilter, setGenderFilter] = useState<"All" | "F" | "M">("All");
+  const [dimFilter, setDimFilter] = useState<"all" | DimensionKey>("all");
+
+  const studentMap = useMemo(() => {
+    const m = new Map<string, Student>();
+    students.forEach((s) => m.set(s.id, s));
+    return m;
+  }, [students]);
+
+  const enriched = useMemo(() => {
+    return progressed.map((p) => {
+      const meta = findSkillMeta(cycle, p.skillId);
+      const student = studentMap.get(p.studentId);
+      return { ...p, dimension: meta?.dimension as DimensionKey | undefined, gender: student?.gender };
+    });
+  }, [progressed, studentMap, cycle]);
+
+  const filtered = useMemo(() => {
+    const list = enriched.filter((p) => {
+      if (genderFilter !== "All" && p.gender !== genderFilter) return false;
+      if (dimFilter !== "all" && p.dimension !== dimFilter) return false;
+      return true;
+    });
+    list.sort((a, b) => a.before - b.before || a.after - b.after || a.studentName.localeCompare(b.studentName));
+    return list;
+  }, [enriched, genderFilter, dimFilter]);
+
+  return (
+    <div className="pop-card p-5 bg-gradient-to-br from-secondary/20 to-transparent">
+      <div className="flex items-center gap-2 mb-3">
+        <TrendingUp className="text-secondary" strokeWidth={3} />
+        <h2 className="font-display text-2xl">Progressions ({progressed.length})</h2>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 mb-3 pb-3 border-b-2 border-dashed border-ink/15">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft mr-1">Genre</span>
+        {(["All", "F", "M"] as const).map((g) => (
+          <button
+            key={g}
+            onClick={() => setGenderFilter(g)}
+            className={cn(
+              "px-2.5 py-1 rounded-xl border-[2.5px] border-ink font-display text-[11px] tracking-widest transition-all",
+              genderFilter === g ? "bg-ink text-surface shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+            )}
+          >
+            {g === "All" ? "Tous" : g === "F" ? "F" : "M"}
+          </button>
+        ))}
+        <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft mr-1">Dimension</span>
+        {([
+          { k: "all", label: "Toutes", cls: "" },
+          { k: "moteur", label: "Moteur", cls: "bg-[oklch(0.65_0.22_25)] text-white" },
+          { k: "methodo", label: "Méthodo", cls: "bg-[oklch(0.82_0.18_115)] text-ink" },
+          { k: "social", label: "Social", cls: "bg-[oklch(0.65_0.18_240)] text-white" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.k}
+            onClick={() => setDimFilter(opt.k as typeof dimFilter)}
+            className={cn(
+              "px-2.5 py-1 rounded-xl border-[2.5px] border-ink font-display text-[11px] tracking-widest transition-all",
+              dimFilter === opt.k ? `${opt.cls || "bg-secondary text-secondary-foreground"} shadow-pop-sm` : "bg-surface hover:bg-surface-2"
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="text-sm font-semibold text-ink-soft">Aucune progression à afficher.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {filtered.map((p, i) => (
+            <li key={i} className="text-sm font-semibold flex items-center gap-2">
+              <span className="font-display px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px]">{p.skillCode}</span>
+              <span>{p.studentName}</span>
+              <span className="text-ink-soft">N{p.before} → N{p.after}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

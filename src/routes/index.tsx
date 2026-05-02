@@ -1,7 +1,7 @@
 // Sport Pop Hub — pick a class to enter the game.
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Trophy, Users, Sparkles, ChevronRight, Plus, Trash2, Map as MapIcon, X } from "lucide-react";
+import { Trophy, Users, Sparkles, ChevronRight, Plus, Trash2, Map as MapIcon, X, BarChart3 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PopButton } from "@/components/game/PopButton";
+import { ClassRecapModal } from "@/components/game/ClassRecapModal";
 import type { Cycle } from "@/data/curriculum";
 
 export const Route = createFileRoute("/")({
@@ -43,6 +44,7 @@ function Hub() {
 
   const [openAdd, setOpenAdd] = useState(false);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [recapId, setRecapId] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [cycle, setCycle] = useState<Cycle>("cycle4");
@@ -143,6 +145,13 @@ function Hub() {
                     {count} élève{count > 1 ? "s" : ""}
                   </span>
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); ensureClass(cls.id); setRecapId(cls.id); }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface text-ink border-2 border-ink text-[10px] font-display uppercase tracking-wider shadow-pop-sm hover:-translate-y-0.5 hover:bg-gradient-sun transition-all"
+                      title="Récap. de classe"
+                    >
+                      <BarChart3 size={12} strokeWidth={3} /> Récap
+                    </button>
                     <button
                       onClick={(e) => handleParcours(cls.id, e)}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-accent text-accent-foreground border-2 border-ink text-[10px] font-display uppercase tracking-wider shadow-pop-sm hover:-translate-y-0.5 transition-transform"
@@ -273,6 +282,20 @@ function Hub() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {recapId && (() => {
+        const cls = classes.find((c) => c.id === recapId);
+        if (!cls) return null;
+        return (
+          <ClassRecapModal
+            open={!!recapId}
+            onOpenChange={(o) => !o && setRecapId(null)}
+            className={cls.name}
+            cycle={cls.cycle}
+            students={studentsByClass[cls.id] || []}
+          />
+        );
+      })()}
     </main>
   );
 }
