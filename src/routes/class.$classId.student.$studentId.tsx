@@ -166,8 +166,8 @@ const StudentProfile = () => {
 
                 <div className="flex-1 min-w-[160px]">
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-ink-soft mb-1">
-                    <span>Progression</span>
-                    <span>{levelPct}%</span>
+                    <span>XP vers N{Math.min(MAX_LEVEL, student.level + 1)}</span>
+                    <span>{xpPct}%</span>
                   </div>
                   <div className="h-4 rounded-full bg-muted border-[3px] border-ink overflow-hidden shadow-pop-sm">
                     <div
