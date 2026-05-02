@@ -409,25 +409,12 @@ function SituationMode() {
               </div>
             )}
 
-            <div className="pop-card p-5 bg-gradient-to-br from-secondary/20 to-transparent">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="text-secondary" strokeWidth={3} />
-                <h2 className="font-display text-2xl">Progressions ({outcome.progressed.length})</h2>
-              </div>
-              {outcome.progressed.length === 0 ? (
-                <p className="text-sm font-semibold text-ink-soft">Aucune progression enregistrée pendant cette situation.</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {outcome.progressed.map((p, i) => (
-                    <li key={i} className="text-sm font-semibold flex items-center gap-2">
-                      <span className="font-display px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px]">{p.skillCode}</span>
-                      <span>{p.studentName}</span>
-                      <span className="text-ink-soft">N{p.before} → N{p.after}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <DebriefProgressList
+              progressed={outcome.progressed}
+              students={students}
+              cycle={cycle!}
+            />
+            {/* keep stagnated section below — replaced by DebriefProgressList for progressions */}
 
             <div className="pop-card p-5 bg-gradient-to-br from-hot/15 to-transparent">
               <div className="flex items-center gap-2 mb-2">
