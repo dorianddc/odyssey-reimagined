@@ -76,8 +76,15 @@ const StudentProfile = () => {
   const totalSkills = Object.values(categories).reduce((acc, c) => acc + c.skills.length, 0);
   const totalStars = Object.values(student.skillStates).reduce((acc, n) => acc + n, 0);
   const maxStars = totalSkills * 5;
-  const xpPct = Math.min(100, Math.round((totalStars / maxStars) * 100));
-  const levelPct = Math.min(100, Math.round((student.level / MAX_LEVEL) * 100));
+  // XP toward next level (paliers/1 level = totalSkills*5 / MAX_LEVEL paliers)
+  const palierPerLevel = maxStars / MAX_LEVEL;
+  const palierFloorForLevel = student.level * palierPerLevel;
+  const palierForNext = palierPerLevel; // stars needed for the next level
+  const acquiredTowardNext = Math.max(0, totalStars - palierFloorForLevel);
+  const xpPct = student.level >= MAX_LEVEL
+    ? 100
+    : Math.min(100, Math.round((acquiredTowardNext / palierForNext) * 100));
+  const levelPct = xpPct;
 
   const handleBump = (skillId: string, dir: "up" | "down") => {
     bumpSkill(classId, studentId, skillId, dir);
