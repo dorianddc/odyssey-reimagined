@@ -146,6 +146,13 @@ function Hub() {
                   </span>
                   <div className="flex items-center gap-1">
                     <button
+                      onClick={(e) => { e.stopPropagation(); ensureClass(cls.id); setRecapId(cls.id); }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface text-ink border-2 border-ink text-[10px] font-display uppercase tracking-wider shadow-pop-sm hover:-translate-y-0.5 hover:bg-gradient-sun transition-all"
+                      title="Récap. de classe"
+                    >
+                      <BarChart3 size={12} strokeWidth={3} /> Récap
+                    </button>
+                    <button
                       onClick={(e) => handleParcours(cls.id, e)}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-accent text-accent-foreground border-2 border-ink text-[10px] font-display uppercase tracking-wider shadow-pop-sm hover:-translate-y-0.5 transition-transform"
                       title="Voir le parcours"
