@@ -282,6 +282,20 @@ function Hub() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {recapId && (() => {
+        const cls = classes.find((c) => c.id === recapId);
+        if (!cls) return null;
+        return (
+          <ClassRecapModal
+            open={!!recapId}
+            onOpenChange={(o) => !o && setRecapId(null)}
+            className={cls.name}
+            cycle={cls.cycle}
+            students={studentsByClass[cls.id] || []}
+          />
+        );
+      })()}
     </main>
   );
 }
