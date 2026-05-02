@@ -1,7 +1,7 @@
 // Sport Pop Hub — pick a class to enter the game.
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Trophy, Users, Sparkles, ChevronRight, Plus, Trash2, Map as MapIcon, X } from "lucide-react";
+import { Trophy, Users, Sparkles, ChevronRight, Plus, Trash2, Map as MapIcon, X, BarChart3 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PopButton } from "@/components/game/PopButton";
+import { ClassRecapModal } from "@/components/game/ClassRecapModal";
 import type { Cycle } from "@/data/curriculum";
 
 export const Route = createFileRoute("/")({
