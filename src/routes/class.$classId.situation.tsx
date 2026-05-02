@@ -9,7 +9,7 @@ import {
 import { useAppStore } from "@/store/AppStore";
 import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
-import { CURRICULUM, type DimensionKey, MAX_SKILL_STARS } from "@/data/curriculum";
+import { CURRICULUM, type DimensionKey, MAX_SKILL_STARS, findSkillMeta, type Student } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/class/$classId/situation")({
