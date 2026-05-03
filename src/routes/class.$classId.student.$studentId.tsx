@@ -90,12 +90,44 @@ const StudentProfile = () => {
     : Math.max(0, Math.min(100, Math.round((rawLevel - (student.level - 0.5)) * 100)));
   const levelPct = xpPct;
 
+  // Animate XP bar progressively when xpPct changes (with sound)
+  useEffect(() => {
+    const from = lastXpRef.current;
+    const to = xpPct;
+    if (from === to) {
+      setAnimatedXp(to);
+      return;
+    }
+    const isGain = to > from;
+    if (isGain) playSfx("xp");
+    const duration = 900;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setAnimatedXp(from + (to - from) * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else lastXpRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [xpPct, playSfx]);
+
   const handleBump = (skillId: string, dir: "up" | "down") => {
     bumpSkill(classId, studentId, skillId, dir);
     if (dir === "up") {
       setBurstKeys((b) => ({ ...b, [skillId]: (b[skillId] || 0) + 1 }));
     }
   };
+
+  // Map of difficulties by skillId for quick lookup
+  const difficultyBySkill = useMemo(() => {
+    const map: Record<string, typeof student.difficulties[number]> = {};
+    (student.difficulties || []).forEach((d) => { map[d.skillId] = d; });
+    return map;
+  }, [student.difficulties]);
 
   return (
     <main className="min-h-screen pb-24">
