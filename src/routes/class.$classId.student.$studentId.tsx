@@ -309,11 +309,24 @@ const StudentProfile = () => {
                     const nextLabel = stars < 5 ? skill.levels[stars] : null;
                     const isMax = stars >= 5;
                     const burst = burstKeys[skill.id] || 0;
+                    const flagged = !!difficultyBySkill[skill.id];
                     return (
                       <div
                         key={skill.id}
-                        className="rounded-2xl border-[2.5px] border-ink bg-surface-2 p-3 shadow-pop-sm"
+                        className={cn(
+                          "rounded-2xl border-[2.5px] p-3 shadow-pop-sm relative transition-all",
+                          flagged
+                            ? "border-[oklch(0.65_0.28_25)] bg-[oklch(0.98_0.03_25)] ring-2 ring-[oklch(0.65_0.28_25)]/40"
+                            : "border-ink bg-surface-2"
+                        )}
                       >
+                        {flagged && (
+                          <span className="absolute -top-2 -right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[oklch(0.65_0.28_25)] text-white border-[2px] border-ink font-display text-[9px] uppercase tracking-widest shadow-pop-sm">
+                            <span className="absolute inset-0 rounded-full ring-2 ring-[oklch(0.65_0.28_25)] animate-ping" />
+                            <AlertTriangle size={10} strokeWidth={3} className="relative" />
+                            <span className="relative">Difficulté</span>
+                          </span>
+                        )}
                         {/* Header */}
                         <div className="flex items-center gap-2 mb-3">
                           <span className="font-display text-xs px-2 py-0.5 rounded-md bg-ink text-surface uppercase">
