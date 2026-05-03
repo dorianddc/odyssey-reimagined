@@ -7,7 +7,7 @@ interface AudioCtx {
   muted: boolean;
   toggleMute: () => void;
   setBgm: (track: BgmTrack) => void;
-  playSfx: (name: "hover" | "click" | "zoom") => void;
+  playSfx: (name: "hover" | "click" | "zoom" | "xp") => void;
 }
 
 // Free CDN-hosted placeholders (royalty-free / pixabay-style mirrors).
@@ -18,6 +18,7 @@ const SOURCES = {
   hover: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8e5b00b1e.mp3?filename=pop-39222.mp3",
   click: "https://cdn.pixabay.com/download/audio/2022/03/24/audio_d1718beea4.mp3?filename=click-21156.mp3",
   zoom: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_4754c5b2a9.mp3?filename=interface-124464.mp3",
+  xp: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_2c8b1f9b7a.mp3?filename=collect-points-190037.mp3",
 };
 
 const Ctx = createContext<AudioCtx | null>(null);
@@ -97,11 +98,11 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [muted, fadeTo]);
 
-  const playSfx = useCallback((name: "hover" | "click" | "zoom") => {
+  const playSfx = useCallback((name: "hover" | "click" | "zoom" | "xp") => {
     if (muted) return;
     try {
       const el = new Audio(SOURCES[name]);
-      el.volume = name === "hover" ? 0.25 : 0.5;
+      el.volume = name === "hover" ? 0.25 : name === "xp" ? 0.55 : 0.5;
       el.play().catch(() => {});
     } catch { /* noop */ }
   }, [muted]);

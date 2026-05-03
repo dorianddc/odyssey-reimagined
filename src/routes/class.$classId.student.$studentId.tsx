@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/react-router";
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
 import { CURRICULUM, MAX_LEVEL, getRankBadge, type DimensionKey } from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
@@ -42,10 +42,13 @@ const StudentProfile = () => {
     navigate({ to: "/class/$classId/parcours", params: { classId } });
   };
   const { classes, ensureClass, getStudent, bumpSkill, removeStudent, pendingLevelUp, clearLevelUp } = useAppStore();
-  const { setBgm } = useAudio();
+  const { setBgm, playSfx } = useAudio();
   const cls = classes.find((c) => c.id === classId);
   const [burstKeys, setBurstKeys] = useState<Record<string, number>>({});
   const [confirmDel, setConfirmDel] = useState(false);
+  const [animatedXp, setAnimatedXp] = useState(0);
+  const lastXpRef = useRef(0);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
     if (classId) ensureClass(classId);
@@ -88,12 +91,45 @@ const StudentProfile = () => {
     : Math.max(0, Math.min(100, Math.round((rawLevel - (student.level - 0.5)) * 100)));
   const levelPct = xpPct;
 
+  // Animate XP bar progressively when xpPct changes (with sound)
+  useEffect(() => {
+    const from = lastXpRef.current;
+    const to = xpPct;
+    if (from === to) {
+      setAnimatedXp(to);
+      return;
+    }
+    const isGain = to > from;
+    if (isGain && mountedRef.current) playSfx("xp");
+    mountedRef.current = true;
+    const duration = 900;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setAnimatedXp(from + (to - from) * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else lastXpRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [xpPct, playSfx]);
+
   const handleBump = (skillId: string, dir: "up" | "down") => {
     bumpSkill(classId, studentId, skillId, dir);
     if (dir === "up") {
       setBurstKeys((b) => ({ ...b, [skillId]: (b[skillId] || 0) + 1 }));
     }
   };
+
+  // Map of difficulties by skillId for quick lookup
+  const difficultyBySkill = useMemo(() => {
+    const map: Record<string, typeof student.difficulties[number]> = {};
+    (student.difficulties || []).forEach((d) => { map[d.skillId] = d; });
+    return map;
+  }, [student.difficulties]);
 
   return (
     <main className="min-h-screen pb-24">
@@ -169,14 +205,15 @@ const StudentProfile = () => {
                 <div className="flex-1 min-w-[160px]">
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-ink-soft mb-1">
                     <span>XP vers N{Math.min(MAX_LEVEL, student.level + 1)}</span>
-                    <span>{xpPct}%</span>
+                    <span className="tabular-nums">{Math.round(animatedXp)}%</span>
                   </div>
-                  <div className="h-4 rounded-full bg-muted border-[3px] border-ink overflow-hidden shadow-pop-sm">
+                  <div className="h-4 rounded-full bg-muted border-[3px] border-ink overflow-hidden shadow-pop-sm relative">
                     <div
-                      className="h-full bg-gradient-sun transition-all duration-700 relative"
-                      style={{ width: `${levelPct}%` }}
+                      className="h-full bg-gradient-sun relative"
+                      style={{ width: `${animatedXp}%`, transition: "none" }}
                     >
                       <div className="absolute inset-0 shimmer" />
+                      <div className="absolute inset-y-0 right-0 w-2 bg-white/70 blur-[2px]" />
                     </div>
                   </div>
                 </div>
@@ -199,6 +236,51 @@ const StudentProfile = () => {
       </section>
 
       {/* SKILLS */}
+      {/* DIFFICULTIES ALERT */}
+      {(student.difficulties?.length ?? 0) > 0 && (
+        <section className="max-w-6xl mx-auto px-4 md:px-8 mt-6">
+          <div className="relative pop-card overflow-hidden border-[3px] border-[oklch(0.65_0.28_25)] bg-[oklch(0.97_0.04_25)]">
+            <div className="absolute inset-0 pointer-events-none animate-pulse bg-[oklch(0.65_0.28_25)]/5" />
+            <div className="p-4 md:p-5 flex items-start gap-3 relative">
+              <div className="w-10 h-10 rounded-xl bg-[oklch(0.65_0.28_25)] text-white border-[2.5px] border-ink grid place-items-center shrink-0 shadow-pop-sm">
+                <AlertTriangle size={22} strokeWidth={3} />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-display text-lg md:text-xl uppercase tracking-wide text-[oklch(0.45_0.22_25)] leading-tight">
+                  Difficultés repérées · {student.difficulties.length}
+                </h2>
+                <p className="text-xs font-semibold text-ink-soft">
+                  Compétences sur lesquelles {student.name} stagne actuellement.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {student.difficulties.map((d) => {
+                    const skill = Object.values(categories).flatMap((c) => c.skills).find((s) => s.id === d.skillId);
+                    return (
+                      <div
+                        key={d.id}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-[2.5px] border-ink bg-surface shadow-pop-sm"
+                      >
+                        <span className="relative inline-grid place-items-center">
+                          <span className="absolute inset-0 rounded-full ring-2 ring-[oklch(0.65_0.28_25)] animate-ping" />
+                          <span className="relative w-2.5 h-2.5 rounded-full bg-[oklch(0.65_0.28_25)]" />
+                        </span>
+                        <span className="font-display text-xs uppercase">{d.skillCode}</span>
+                        <span className="text-xs font-semibold text-ink truncate max-w-[180px]">
+                          {skill?.name}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                          Bloqué N{d.currentLevel}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="max-w-6xl mx-auto px-4 md:px-8 mt-10 grid md:grid-cols-2 xl:grid-cols-3 gap-5">
         {(Object.entries(categories) as [DimensionKey, (typeof categories)[DimensionKey]][]).map(
           ([key, cat]) => {
@@ -229,11 +311,24 @@ const StudentProfile = () => {
                     const nextLabel = stars < 5 ? skill.levels[stars] : null;
                     const isMax = stars >= 5;
                     const burst = burstKeys[skill.id] || 0;
+                    const flagged = !!difficultyBySkill[skill.id];
                     return (
                       <div
                         key={skill.id}
-                        className="rounded-2xl border-[2.5px] border-ink bg-surface-2 p-3 shadow-pop-sm"
+                        className={cn(
+                          "rounded-2xl border-[2.5px] p-3 shadow-pop-sm relative transition-all",
+                          flagged
+                            ? "border-[oklch(0.65_0.28_25)] bg-[oklch(0.98_0.03_25)] ring-2 ring-[oklch(0.65_0.28_25)]/40"
+                            : "border-ink bg-surface-2"
+                        )}
                       >
+                        {flagged && (
+                          <span className="absolute -top-2 -right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[oklch(0.65_0.28_25)] text-white border-[2px] border-ink font-display text-[9px] uppercase tracking-widest shadow-pop-sm">
+                            <span className="absolute inset-0 rounded-full ring-2 ring-[oklch(0.65_0.28_25)] animate-ping" />
+                            <AlertTriangle size={10} strokeWidth={3} className="relative" />
+                            <span className="relative">Difficulté</span>
+                          </span>
+                        )}
                         {/* Header */}
                         <div className="flex items-center gap-2 mb-3">
                           <span className="font-display text-xs px-2 py-0.5 rounded-md bg-ink text-surface uppercase">
