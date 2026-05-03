@@ -76,14 +76,16 @@ const StudentProfile = () => {
   const totalSkills = Object.values(categories).reduce((acc, c) => acc + c.skills.length, 0);
   const totalStars = Object.values(student.skillStates).reduce((acc, n) => acc + n, 0);
   const maxStars = totalSkills * 5;
-  // XP toward next level (paliers/1 level = totalSkills*5 / MAX_LEVEL paliers)
-  const palierPerLevel = maxStars / MAX_LEVEL;
-  const palierFloorForLevel = student.level * palierPerLevel;
-  const palierForNext = palierPerLevel; // stars needed for the next level
-  const acquiredTowardNext = Math.max(0, totalStars - palierFloorForLevel);
+  // XP toward next level — derive a continuous "raw level" from the same formula
+  // used by calculateLevelFromStars (avg*4 + 4 + 0.5 per mastered skill), then
+  // measure how far we are between the current rounded level and the next.
+  const rawAvg = totalStars > 0 ? Object.values(student.skillStates).reduce((a, n) => a + Math.min(n, 4), 0) / Math.max(1, totalSkills) : 0;
+  const masteredCount = Object.values(student.skillStates).filter((n) => n === 5).length;
+  const rawLevel = Math.min(MAX_LEVEL, rawAvg * 4 + 4 + masteredCount * 0.5);
+  // Math.round transitions at .5 → progression toward next level spans [level-0.5 ; level+0.5]
   const xpPct = student.level >= MAX_LEVEL
     ? 100
-    : Math.min(100, Math.round((acquiredTowardNext / palierForNext) * 100));
+    : Math.max(0, Math.min(100, Math.round((rawLevel - (student.level - 0.5)) * 100)));
   const levelPct = xpPct;
 
   const handleBump = (skillId: string, dir: "up" | "down") => {
