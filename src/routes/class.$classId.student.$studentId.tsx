@@ -100,7 +100,8 @@ const StudentProfile = () => {
       return;
     }
     const isGain = to > from;
-    if (isGain) playSfx("xp");
+    if (isGain && mountedRef.current) playSfx("xp");
+    mountedRef.current = true;
     const duration = 900;
     const start = performance.now();
     let raf = 0;
