@@ -234,6 +234,51 @@ const StudentProfile = () => {
       </section>
 
       {/* SKILLS */}
+      {/* DIFFICULTIES ALERT */}
+      {(student.difficulties?.length ?? 0) > 0 && (
+        <section className="max-w-6xl mx-auto px-4 md:px-8 mt-6">
+          <div className="relative pop-card overflow-hidden border-[3px] border-[oklch(0.65_0.28_25)] bg-[oklch(0.97_0.04_25)]">
+            <div className="absolute inset-0 pointer-events-none animate-pulse bg-[oklch(0.65_0.28_25)]/5" />
+            <div className="p-4 md:p-5 flex items-start gap-3 relative">
+              <div className="w-10 h-10 rounded-xl bg-[oklch(0.65_0.28_25)] text-white border-[2.5px] border-ink grid place-items-center shrink-0 shadow-pop-sm">
+                <AlertTriangle size={22} strokeWidth={3} />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-display text-lg md:text-xl uppercase tracking-wide text-[oklch(0.45_0.22_25)] leading-tight">
+                  Difficultés repérées · {student.difficulties.length}
+                </h2>
+                <p className="text-xs font-semibold text-ink-soft">
+                  Compétences sur lesquelles {student.name} stagne actuellement.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {student.difficulties.map((d) => {
+                    const skill = Object.values(categories).flatMap((c) => c.skills).find((s) => s.id === d.skillId);
+                    return (
+                      <div
+                        key={d.id}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-[2.5px] border-ink bg-surface shadow-pop-sm"
+                      >
+                        <span className="relative inline-grid place-items-center">
+                          <span className="absolute inset-0 rounded-full ring-2 ring-[oklch(0.65_0.28_25)] animate-ping" />
+                          <span className="relative w-2.5 h-2.5 rounded-full bg-[oklch(0.65_0.28_25)]" />
+                        </span>
+                        <span className="font-display text-xs uppercase">{d.skillCode}</span>
+                        <span className="text-xs font-semibold text-ink truncate max-w-[180px]">
+                          {skill?.name}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                          Bloqué N{d.currentLevel}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="max-w-6xl mx-auto px-4 md:px-8 mt-10 grid md:grid-cols-2 xl:grid-cols-3 gap-5">
         {(Object.entries(categories) as [DimensionKey, (typeof categories)[DimensionKey]][]).map(
           ([key, cat]) => {
