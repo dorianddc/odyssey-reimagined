@@ -48,6 +48,7 @@ const StudentProfile = () => {
   const [confirmDel, setConfirmDel] = useState(false);
   const [animatedXp, setAnimatedXp] = useState(0);
   const lastXpRef = useRef(0);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
     if (classId) ensureClass(classId);
