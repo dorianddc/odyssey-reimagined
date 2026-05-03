@@ -42,10 +42,12 @@ const StudentProfile = () => {
     navigate({ to: "/class/$classId/parcours", params: { classId } });
   };
   const { classes, ensureClass, getStudent, bumpSkill, removeStudent, pendingLevelUp, clearLevelUp } = useAppStore();
-  const { setBgm } = useAudio();
+  const { setBgm, playSfx } = useAudio();
   const cls = classes.find((c) => c.id === classId);
   const [burstKeys, setBurstKeys] = useState<Record<string, number>>({});
   const [confirmDel, setConfirmDel] = useState(false);
+  const [animatedXp, setAnimatedXp] = useState(0);
+  const lastXpRef = useRef(0);
 
   useEffect(() => {
     if (classId) ensureClass(classId);
