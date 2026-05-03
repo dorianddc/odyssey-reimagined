@@ -118,13 +118,13 @@ export const FullSpectrumRadar = ({ skillStates, cycle, size = 320 }: FullSpectr
                 style={{ filter: `drop-shadow(0 2px 0 hsl(var(--ink)))` }}
               />
               <text
-                fontFamily="Bebas Neue"
-                fontSize={14}
-                fontWeight="700"
+                fontFamily="Lexend, Inter, system-ui, sans-serif"
+                fontSize={11}
+                fontWeight={800}
                 textAnchor="middle"
                 dominantBaseline="central"
                 fill={`hsl(${p.colorVar.replace("var(", "").replace(")", "")})`}
-                style={{ textTransform: "uppercase" }}
+                style={{ textTransform: "uppercase", letterSpacing: "0.04em" }}
               >
                 {p.code}
               </text>
