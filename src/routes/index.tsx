@@ -42,6 +42,8 @@ const EMOJI_CHOICES = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "�
 function Hub() {
   const navigate = useNavigate();
   const { classes, studentsByClass, ensureClass, addClass, removeClass } = useAppStore();
+  const { setBgm } = useAudio();
+  useEffect(() => { setBgm("hub"); }, [setBgm]);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
