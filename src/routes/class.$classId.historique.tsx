@@ -15,6 +15,8 @@ function HistoriquePage() {
   const navigate = useNavigate();
   const { classes, situationHistory } = useAppStore();
   const cls = classes.find((c) => c.id === classId);
+  const { setBgm } = useAudio();
+  useEffect(() => { setBgm("historique"); }, [setBgm]);
 
   const records = useMemo(
     () => situationHistory.filter((r) => r.classId === classId),
