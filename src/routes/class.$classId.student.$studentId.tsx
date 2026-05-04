@@ -92,7 +92,7 @@ const StudentProfile = () => {
 
   // Animate XP bar progressively when xpPct changes (with sound).
   // First mount = jump straight to current value (no animation).
-  // Subsequent changes = slow animated fill (~1.8s) + xp SFX on gain.
+  // Subsequent changes = slow animated fill (~3.5s) + xp SFX on gain.
   useEffect(() => {
     const from = lastXpRef.current;
     const to = xpPct;
@@ -105,7 +105,7 @@ const StudentProfile = () => {
     if (from === to) return;
     const isGain = to > from;
     if (isGain) playSfx("xp");
-    const duration = 1800;
+    const duration = 3500;
     const start = performance.now();
     let raf = 0;
     const tick = (now: number) => {

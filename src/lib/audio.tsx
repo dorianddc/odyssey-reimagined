@@ -1,117 +1,272 @@
-// Global reactive audio system: BGM with crossfade + SFX (mute by default).
+// Global reactive audio system: generated BGM + SFX, no remote files.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 export type BgmTrack = "odyssey" | "profile" | "hub" | "class" | "situation" | "historique" | null;
+type SfxName = "hover" | "click" | "zoom" | "xp";
 
 interface AudioCtx {
   muted: boolean;
   toggleMute: () => void;
   setBgm: (track: BgmTrack) => void;
-  playSfx: (name: "hover" | "click" | "zoom" | "xp") => void;
+  playSfx: (name: SfxName) => void;
 }
 
-// Free CDN-hosted placeholders (royalty-free / pixabay-style mirrors).
-// They degrade gracefully if unreachable.
-const SOURCES = {
-  odyssey: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=epic-cinematic-trailer-114577.mp3",
-  profile: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=ambient-piano-amp-strings-10711.mp3",
-  hub: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_864e7b1cda.mp3?filename=lofi-chill-medium-version-159456.mp3",
-  class: "https://cdn.pixabay.com/download/audio/2023/06/12/audio_dca72d24a4.mp3?filename=lofi-study-calm-peaceful-chill-hop-112191.mp3",
-  situation: "https://cdn.pixabay.com/download/audio/2022/10/14/audio_4a9d4b1d9b.mp3?filename=sport-action-126999.mp3",
-  historique: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=ambient-piano-amp-strings-10711.mp3",
-  hover: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8e5b00b1e.mp3?filename=pop-39222.mp3",
-  click: "https://cdn.pixabay.com/download/audio/2022/03/24/audio_d1718beea4.mp3?filename=click-21156.mp3",
-  zoom: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_4754c5b2a9.mp3?filename=interface-124464.mp3",
-  xp: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_2c8b1f9b7a.mp3?filename=collect-points-190037.mp3",
+type BrowserAudioContext = typeof AudioContext;
+
+type TrackConfig = {
+  tempo: number;
+  volume: number;
+  wave: OscillatorType;
+  notes: number[];
+  bass: number[];
+  pad: number[];
+  sparkle?: boolean;
+  drive?: boolean;
+};
+
+const TRACKS: Exclude<BgmTrack, null>[] = ["odyssey", "profile", "hub", "class", "situation", "historique"];
+
+const TRACK_CONFIG: Record<Exclude<BgmTrack, null>, TrackConfig> = {
+  hub: {
+    tempo: 92,
+    volume: 0.24,
+    wave: "triangle",
+    notes: [392, 440, 523.25, 587.33, 659.25, 587.33, 523.25, 440],
+    bass: [196, 196, 220, 246.94],
+    pad: [196, 246.94, 329.63],
+    sparkle: true,
+  },
+  class: {
+    tempo: 86,
+    volume: 0.22,
+    wave: "sine",
+    notes: [329.63, 392, 440, 493.88, 440, 392, 329.63, 293.66],
+    bass: [164.81, 196, 220, 196],
+    pad: [164.81, 220, 329.63],
+  },
+  profile: {
+    tempo: 78,
+    volume: 0.2,
+    wave: "triangle",
+    notes: [261.63, 329.63, 392, 493.88, 440, 392, 329.63, 293.66],
+    bass: [130.81, 164.81, 196, 146.83],
+    pad: [130.81, 196, 261.63],
+    sparkle: true,
+  },
+  situation: {
+    tempo: 124,
+    volume: 0.26,
+    wave: "square",
+    notes: [392, 523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 523.25],
+    bass: [196, 196, 261.63, 293.66],
+    pad: [196, 246.94, 392],
+    drive: true,
+  },
+  historique: {
+    tempo: 72,
+    volume: 0.18,
+    wave: "sine",
+    notes: [293.66, 349.23, 440, 523.25, 493.88, 440, 349.23, 293.66],
+    bass: [146.83, 174.61, 220, 196],
+    pad: [146.83, 220, 293.66],
+  },
+  odyssey: {
+    tempo: 104,
+    volume: 0.28,
+    wave: "sawtooth",
+    notes: [392, 493.88, 587.33, 783.99, 698.46, 587.33, 493.88, 392],
+    bass: [98, 130.81, 146.83, 196],
+    pad: [98, 146.83, 196],
+    sparkle: true,
+    drive: true,
+  },
 };
 
 const Ctx = createContext<AudioCtx | null>(null);
 
+const createGain = (ctx: AudioContext, value: number) => {
+  const gain = ctx.createGain();
+  gain.gain.value = value;
+  return gain;
+};
+
+const envelope = (gain: GainNode, start: number, peak: number, attack: number, decay: number) => {
+  gain.gain.cancelScheduledValues(start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), start + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + attack + decay);
+};
+
+const playTone = (
+  ctx: AudioContext,
+  destination: AudioNode,
+  frequency: number,
+  start: number,
+  duration: number,
+  volume: number,
+  type: OscillatorType,
+) => {
+  const osc = ctx.createOscillator();
+  const gain = createGain(ctx, 0.0001);
+  osc.type = type;
+  osc.frequency.setValueAtTime(frequency, start);
+  osc.connect(gain);
+  gain.connect(destination);
+  envelope(gain, start, volume, Math.min(0.04, duration * 0.25), Math.max(0.05, duration));
+  osc.start(start);
+  osc.stop(start + duration + 0.08);
+};
+
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const [muted, setMuted] = useState(true);
-  const bgmA = useRef<HTMLAudioElement | null>(null);
-  const bgmB = useRef<HTMLAudioElement | null>(null);
-  const activeRef = useRef<"A" | "B">("A");
+  const ctxRef = useRef<AudioContext | null>(null);
+  const masterRef = useRef<GainNode | null>(null);
+  const bgmRef = useRef<GainNode | null>(null);
+  const sfxRef = useRef<GainNode | null>(null);
   const currentTrack = useRef<BgmTrack>(null);
-  const fadeTimer = useRef<number | null>(null);
+  const loopTimer = useRef<number | null>(null);
+  const stepRef = useRef(0);
 
-  // Lazy create elements
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    bgmA.current = new Audio();
-    bgmA.current.loop = true;
-    bgmA.current.volume = 0;
-    bgmB.current = new Audio();
-    bgmB.current.loop = true;
-    bgmB.current.volume = 0;
-    return () => {
-      bgmA.current?.pause();
-      bgmB.current?.pause();
-    };
+  const stopLoop = useCallback(() => {
+    if (loopTimer.current !== null && typeof window !== "undefined") {
+      window.clearInterval(loopTimer.current);
+      loopTimer.current = null;
+    }
   }, []);
 
-  const fadeTo = useCallback((el: HTMLAudioElement, target: number, ms = 800) => {
-    if (fadeTimer.current) window.clearInterval(fadeTimer.current);
-    const start = el.volume;
-    const startT = performance.now();
-    const tick = () => {
-      const t = Math.min(1, (performance.now() - startT) / ms);
-      el.volume = start + (target - start) * t;
-      if (t >= 1) {
-        if (target === 0) el.pause();
-        return;
-      }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
+  const ensureAudio = useCallback(() => {
+    if (typeof window === "undefined") return null;
+    if (!ctxRef.current) {
+      const AudioCtor: BrowserAudioContext | undefined = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return null;
+      const ctx = new AudioCtor();
+      const master = createGain(ctx, 0.85);
+      const bgm = createGain(ctx, 0.0001);
+      const sfx = createGain(ctx, 0.8);
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -18;
+      compressor.knee.value = 24;
+      compressor.ratio.value = 6;
+      compressor.attack.value = 0.006;
+      compressor.release.value = 0.22;
+      bgm.connect(master);
+      sfx.connect(master);
+      master.connect(compressor);
+      compressor.connect(ctx.destination);
+      ctxRef.current = ctx;
+      masterRef.current = master;
+      bgmRef.current = bgm;
+      sfxRef.current = sfx;
+    }
+    if (ctxRef.current.state === "suspended") {
+      ctxRef.current.resume().catch(() => {});
+    }
+    return ctxRef.current;
+  }, []);
+
+  const scheduleStep = useCallback((track: Exclude<BgmTrack, null>) => {
+    const ctx = ctxRef.current;
+    const bgm = bgmRef.current;
+    if (!ctx || !bgm) return;
+    const cfg = TRACK_CONFIG[track];
+    const step = stepRef.current++;
+    const now = ctx.currentTime + 0.025;
+    const beat = 60 / cfg.tempo;
+    const note = cfg.notes[step % cfg.notes.length];
+    const bass = cfg.bass[Math.floor(step / 2) % cfg.bass.length];
+
+    playTone(ctx, bgm, note, now, beat * 0.42, cfg.volume * 0.22, cfg.wave);
+    if (step % 2 === 0) playTone(ctx, bgm, bass, now, beat * 0.86, cfg.volume * 0.32, "triangle");
+    if (step % 4 === 0) {
+      cfg.pad.forEach((freq, index) => {
+        playTone(ctx, bgm, freq, now + index * 0.018, beat * 3.2, cfg.volume * 0.12, "sine");
+      });
+    }
+    if (cfg.sparkle && step % 3 === 0) playTone(ctx, bgm, note * 2, now + beat * 0.55, beat * 0.18, cfg.volume * 0.11, "sine");
+    if (cfg.drive) playTone(ctx, bgm, 72, now, beat * 0.08, cfg.volume * 0.5, "square");
+  }, []);
+
+  const startLoop = useCallback((track: BgmTrack) => {
+    stopLoop();
+    const ctx = ensureAudio();
+    const bgm = bgmRef.current;
+    if (!ctx || !bgm || !track) return;
+    const cfg = TRACK_CONFIG[track];
+    stepRef.current = 0;
+    bgm.gain.cancelScheduledValues(ctx.currentTime);
+    bgm.gain.setTargetAtTime(cfg.volume, ctx.currentTime, 0.6);
+    scheduleStep(track);
+    loopTimer.current = window.setInterval(() => scheduleStep(track), 60000 / cfg.tempo);
+  }, [ensureAudio, scheduleStep, stopLoop]);
+
+  const fadeOutBgm = useCallback(() => {
+    const ctx = ctxRef.current;
+    const bgm = bgmRef.current;
+    if (!ctx || !bgm) return;
+    bgm.gain.cancelScheduledValues(ctx.currentTime);
+    bgm.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.25);
   }, []);
 
   const setBgm = useCallback((track: BgmTrack) => {
     if (currentTrack.current === track) return;
     currentTrack.current = track;
-    const a = bgmA.current, b = bgmB.current;
-    if (!a || !b) return;
-    const active = activeRef.current === "A" ? a : b;
-    const next = activeRef.current === "A" ? b : a;
-    // fade out current
-    fadeTo(active, 0, 700);
-    if (track) {
-      next.src = SOURCES[track];
-      next.currentTime = 0;
-      next.volume = 0;
-      if (!muted) {
-        next.play().catch(() => {});
-        fadeTo(next, 0.35, 900);
-      }
-      activeRef.current = activeRef.current === "A" ? "B" : "A";
-    }
-  }, [muted, fadeTo]);
-
-  // React to mute changes
-  useEffect(() => {
-    const a = bgmA.current, b = bgmB.current;
-    if (!a || !b) return;
-    if (muted) {
-      fadeTo(a, 0, 400);
-      fadeTo(b, 0, 400);
-    } else if (currentTrack.current) {
-      const active = activeRef.current === "A" ? a : b;
-      if (!active.src) active.src = SOURCES[currentTrack.current];
-      active.play().catch(() => {});
-      fadeTo(active, 0.35, 700);
-    }
-  }, [muted, fadeTo]);
-
-  const playSfx = useCallback((name: "hover" | "click" | "zoom" | "xp") => {
     if (muted) return;
-    try {
-      const el = new Audio(SOURCES[name]);
-      el.volume = name === "hover" ? 0.25 : name === "xp" ? 0.55 : 0.5;
-      el.play().catch(() => {});
-    } catch { /* noop */ }
-  }, [muted]);
+    fadeOutBgm();
+    window.setTimeout(() => startLoop(track), 180);
+  }, [fadeOutBgm, muted, startLoop]);
 
-  const toggleMute = useCallback(() => setMuted((m) => !m), []);
+  useEffect(() => {
+    if (muted) {
+      fadeOutBgm();
+      stopLoop();
+      return;
+    }
+    startLoop(currentTrack.current);
+  }, [fadeOutBgm, muted, startLoop, stopLoop]);
+
+  useEffect(() => () => {
+    stopLoop();
+    ctxRef.current?.close().catch(() => {});
+  }, [stopLoop]);
+
+  const playSfx = useCallback((name: SfxName) => {
+    if (muted) return;
+    const ctx = ensureAudio();
+    const sfx = sfxRef.current;
+    if (!ctx || !sfx) return;
+    const now = ctx.currentTime + 0.01;
+
+    if (name === "hover") {
+      playTone(ctx, sfx, 660, now, 0.08, 0.09, "sine");
+      return;
+    }
+    if (name === "click") {
+      playTone(ctx, sfx, 420, now, 0.07, 0.18, "square");
+      playTone(ctx, sfx, 720, now + 0.045, 0.08, 0.12, "triangle");
+      return;
+    }
+    if (name === "zoom") {
+      [330, 440, 660].forEach((freq, i) => playTone(ctx, sfx, freq, now + i * 0.045, 0.14, 0.13, "sawtooth"));
+      return;
+    }
+
+    const notes = [523.25, 587.33, 659.25, 783.99, 880, 987.77, 1174.66, 1318.51];
+    notes.forEach((freq, i) => playTone(ctx, sfx, freq, now + i * 0.22, 0.24, 0.18 - i * 0.01, i % 2 ? "triangle" : "sine"));
+    playTone(ctx, sfx, 196, now, 1.9, 0.12, "triangle");
+    playTone(ctx, sfx, 1567.98, now + 1.85, 0.45, 0.18, "sine");
+  }, [ensureAudio, muted]);
+
+  const toggleMute = useCallback(() => {
+    const willUnmute = muted;
+    if (willUnmute) ensureAudio();
+    setMuted((m) => !m);
+  }, [ensureAudio, muted]);
 
   return (
     <Ctx.Provider value={{ muted, toggleMute, setBgm, playSfx }}>
@@ -123,7 +278,6 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 export const useAudio = () => {
   const c = useContext(Ctx);
   if (!c) {
-    // SSR-safe no-op fallback
     return {
       muted: true,
       toggleMute: () => {},
