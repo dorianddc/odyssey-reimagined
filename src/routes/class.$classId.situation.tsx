@@ -7,6 +7,7 @@ import {
   Activity, Brain, Users, SortAsc, SortDesc, Trophy, ChevronRight,
 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
+import { useAudio } from "@/lib/audio";
 import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { CURRICULUM, type DimensionKey, MAX_SKILL_STARS, findSkillMeta, type Student } from "@/data/curriculum";
