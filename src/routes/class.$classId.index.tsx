@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus, Flag, AlertTriangle, History } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
+import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
 import { DifficultyDot } from "@/components/game/DifficultyDot";
