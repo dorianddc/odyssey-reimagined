@@ -55,6 +55,8 @@ function SituationMode() {
   const skipRef = useRef(false);
 
   useEffect(() => { if (classId) ensureClass(classId); }, [classId, ensureClass]);
+  const { setBgm } = useAudio();
+  useEffect(() => { setBgm("situation"); }, [setBgm]);
 
   // Suspend global level-up overlay while running a situation; release on unmount or phase change away from live.
   useEffect(() => {
