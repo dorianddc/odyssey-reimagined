@@ -1,7 +1,7 @@
 // Global reactive audio system: BGM with crossfade + SFX (mute by default).
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
-export type BgmTrack = "odyssey" | "profile" | null;
+export type BgmTrack = "odyssey" | "profile" | "hub" | "class" | "situation" | "historique" | null;
 
 interface AudioCtx {
   muted: boolean;
@@ -15,6 +15,10 @@ interface AudioCtx {
 const SOURCES = {
   odyssey: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=epic-cinematic-trailer-114577.mp3",
   profile: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=ambient-piano-amp-strings-10711.mp3",
+  hub: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_864e7b1cda.mp3?filename=lofi-chill-medium-version-159456.mp3",
+  class: "https://cdn.pixabay.com/download/audio/2023/06/12/audio_dca72d24a4.mp3?filename=lofi-study-calm-peaceful-chill-hop-112191.mp3",
+  situation: "https://cdn.pixabay.com/download/audio/2022/10/14/audio_4a9d4b1d9b.mp3?filename=sport-action-126999.mp3",
+  historique: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=ambient-piano-amp-strings-10711.mp3",
   hover: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8e5b00b1e.mp3?filename=pop-39222.mp3",
   click: "https://cdn.pixabay.com/download/audio/2022/03/24/audio_d1718beea4.mp3?filename=click-21156.mp3",
   zoom: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_4754c5b2a9.mp3?filename=interface-124464.mp3",
