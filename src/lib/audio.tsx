@@ -1,6 +1,12 @@
 // Global reactive audio system: generated BGM + SFX, no remote files.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 export type BgmTrack = "odyssey" | "profile" | "hub" | "class" | "situation" | "historique" | null;
 type SfxName = "hover" | "click" | "zoom" | "xp";
 
@@ -10,6 +16,8 @@ interface AudioCtx {
   setBgm: (track: BgmTrack) => void;
   playSfx: (name: SfxName) => void;
 }
+
+type BrowserAudioContext = typeof AudioContext;
 
 type TrackConfig = {
   tempo: number;
@@ -135,7 +143,8 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const ensureAudio = useCallback(() => {
     if (typeof window === "undefined") return null;
     if (!ctxRef.current) {
-      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      const AudioCtor: BrowserAudioContext | undefined = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return null;
       const ctx = new AudioCtor();
       const master = createGain(ctx, 0.85);
       const bgm = createGain(ctx, 0.0001);
@@ -257,10 +266,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     const willUnmute = muted;
     if (willUnmute) ensureAudio();
     setMuted((m) => !m);
-    if (willUnmute) {
-      window.setTimeout(() => playSfx("click"), 40);
-    }
-  }, [ensureAudio, muted, playSfx]);
+  }, [ensureAudio, muted]);
 
   return (
     <Ctx.Provider value={{ muted, toggleMute, setBgm, playSfx }}>
