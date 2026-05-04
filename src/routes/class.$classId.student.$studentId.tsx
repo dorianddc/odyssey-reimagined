@@ -46,9 +46,8 @@ const StudentProfile = () => {
   const cls = classes.find((c) => c.id === classId);
   const [burstKeys, setBurstKeys] = useState<Record<string, number>>({});
   const [confirmDel, setConfirmDel] = useState(false);
-  const [animatedXp, setAnimatedXp] = useState(0);
-  const lastXpRef = useRef(0);
-  const mountedRef = useRef(false);
+  const [animatedXp, setAnimatedXp] = useState<number | null>(null);
+  const lastXpRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (classId) ensureClass(classId);
