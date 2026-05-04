@@ -40,6 +40,9 @@ function ClassRoster() {
   const [newGender, setNewGender] = useState<"F" | "M">("F");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
 
+  const { setBgm } = useAudio();
+  useEffect(() => { setBgm("class"); }, [setBgm]);
+
   useEffect(() => {
     if (classId) ensureClass(classId);
   }, [classId, ensureClass]);
