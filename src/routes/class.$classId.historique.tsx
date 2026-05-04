@@ -1,8 +1,9 @@
 // Historique des Situations — chronological log of every recorded session.
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, History, TrendingUp, AlertTriangle, Trophy, Calendar } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
+import { useAudio } from "@/lib/audio";
 import { PopButton } from "@/components/game/PopButton";
 
 export const Route = createFileRoute("/class/$classId/historique")({
