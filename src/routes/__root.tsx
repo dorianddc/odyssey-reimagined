@@ -81,6 +81,7 @@ function RootComponent() {
       <AppStoreProvider>
         <AudioProvider>
           <Outlet />
+          <GlobalAudioToggle />
           <Toaster />
         </AudioProvider>
       </AppStoreProvider>
