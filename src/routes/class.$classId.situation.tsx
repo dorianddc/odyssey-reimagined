@@ -7,6 +7,7 @@ import {
   Activity, Brain, Users, SortAsc, SortDesc, Trophy, ChevronRight,
 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
+import { useAudio } from "@/lib/audio";
 import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { CURRICULUM, type DimensionKey, MAX_SKILL_STARS, findSkillMeta, type Student } from "@/data/curriculum";
@@ -54,6 +55,8 @@ function SituationMode() {
   const skipRef = useRef(false);
 
   useEffect(() => { if (classId) ensureClass(classId); }, [classId, ensureClass]);
+  const { setBgm } = useAudio();
+  useEffect(() => { setBgm("situation"); }, [setBgm]);
 
   // Suspend global level-up overlay while running a situation; release on unmount or phase change away from live.
   useEffect(() => {

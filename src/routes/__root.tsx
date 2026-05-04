@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppStoreProvider } from "@/store/AppStore";
 import { AudioProvider } from "@/lib/audio";
+import { GlobalAudioToggle } from "@/components/game/GlobalAudioToggle";
 
 import appCss from "../styles.css?url";
 
@@ -80,6 +81,7 @@ function RootComponent() {
       <AppStoreProvider>
         <AudioProvider>
           <Outlet />
+          <GlobalAudioToggle />
           <Toaster />
         </AudioProvider>
       </AppStoreProvider>

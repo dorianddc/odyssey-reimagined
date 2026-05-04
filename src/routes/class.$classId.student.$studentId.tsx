@@ -46,9 +46,8 @@ const StudentProfile = () => {
   const cls = classes.find((c) => c.id === classId);
   const [burstKeys, setBurstKeys] = useState<Record<string, number>>({});
   const [confirmDel, setConfirmDel] = useState(false);
-  const [animatedXp, setAnimatedXp] = useState(0);
-  const lastXpRef = useRef(0);
-  const mountedRef = useRef(false);
+  const [animatedXp, setAnimatedXp] = useState<number | null>(null);
+  const lastXpRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (classId) ensureClass(classId);
@@ -91,23 +90,26 @@ const StudentProfile = () => {
     : Math.max(0, Math.min(100, Math.round((rawLevel - (student.level - 0.5)) * 100)));
   const levelPct = xpPct;
 
-  // Animate XP bar progressively when xpPct changes (with sound)
+  // Animate XP bar progressively when xpPct changes (with sound).
+  // First mount = jump straight to current value (no animation).
+  // Subsequent changes = slow animated fill (~1.8s) + xp SFX on gain.
   useEffect(() => {
     const from = lastXpRef.current;
     const to = xpPct;
-    if (from === to) {
+    if (from === null) {
+      // initial mount
+      lastXpRef.current = to;
       setAnimatedXp(to);
       return;
     }
+    if (from === to) return;
     const isGain = to > from;
-    if (isGain && mountedRef.current) playSfx("xp");
-    mountedRef.current = true;
-    const duration = 900;
+    if (isGain) playSfx("xp");
+    const duration = 1800;
     const start = performance.now();
     let raf = 0;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
-      // easeOutCubic
       const eased = 1 - Math.pow(1 - t, 3);
       setAnimatedXp(from + (to - from) * eased);
       if (t < 1) raf = requestAnimationFrame(tick);
@@ -205,12 +207,12 @@ const StudentProfile = () => {
                 <div className="flex-1 min-w-[160px]">
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-ink-soft mb-1">
                     <span>XP vers N{Math.min(MAX_LEVEL, student.level + 1)}</span>
-                    <span className="tabular-nums">{Math.round(animatedXp)}%</span>
+                    <span className="tabular-nums">{Math.round(animatedXp ?? xpPct)}%</span>
                   </div>
                   <div className="h-4 rounded-full bg-muted border-[3px] border-ink overflow-hidden shadow-pop-sm relative">
                     <div
                       className="h-full bg-gradient-sun relative"
-                      style={{ width: `${animatedXp}%`, transition: "none" }}
+                      style={{ width: `${animatedXp ?? xpPct}%`, transition: "none" }}
                     >
                       <div className="absolute inset-0 shimmer" />
                       <div className="absolute inset-y-0 right-0 w-2 bg-white/70 blur-[2px]" />

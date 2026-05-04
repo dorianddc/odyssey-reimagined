@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Search, SortAsc, SortDesc, Users, Filter, Plus, Trash2, X, Map as MapIcon, UserPlus, Flag, AlertTriangle, History } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
+import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
 import { DifficultyDot } from "@/components/game/DifficultyDot";
@@ -38,6 +39,9 @@ function ClassRoster() {
   const [newName, setNewName] = useState("");
   const [newGender, setNewGender] = useState<"F" | "M">("F");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+
+  const { setBgm } = useAudio();
+  useEffect(() => { setBgm("class"); }, [setBgm]);
 
   useEffect(() => {
     if (classId) ensureClass(classId);

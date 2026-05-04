@@ -1,5 +1,6 @@
 // Sport Pop Hub — pick a class to enter the game.
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAudio } from "@/lib/audio";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Trophy, Users, Sparkles, ChevronRight, Plus, Trash2, Map as MapIcon, X, BarChart3 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
@@ -41,6 +42,8 @@ const EMOJI_CHOICES = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "�
 function Hub() {
   const navigate = useNavigate();
   const { classes, studentsByClass, ensureClass, addClass, removeClass } = useAppStore();
+  const { setBgm } = useAudio();
+  useEffect(() => { setBgm("hub"); }, [setBgm]);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
