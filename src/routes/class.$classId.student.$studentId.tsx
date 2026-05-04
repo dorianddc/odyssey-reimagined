@@ -207,12 +207,12 @@ const StudentProfile = () => {
                 <div className="flex-1 min-w-[160px]">
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-ink-soft mb-1">
                     <span>XP vers N{Math.min(MAX_LEVEL, student.level + 1)}</span>
-                    <span className="tabular-nums">{Math.round(animatedXp)}%</span>
+                    <span className="tabular-nums">{Math.round(animatedXp ?? xpPct)}%</span>
                   </div>
                   <div className="h-4 rounded-full bg-muted border-[3px] border-ink overflow-hidden shadow-pop-sm relative">
                     <div
                       className="h-full bg-gradient-sun relative"
-                      style={{ width: `${animatedXp}%`, transition: "none" }}
+                      style={{ width: `${animatedXp ?? xpPct}%`, transition: "none" }}
                     >
                       <div className="absolute inset-0 shimmer" />
                       <div className="absolute inset-y-0 right-0 w-2 bg-white/70 blur-[2px]" />
