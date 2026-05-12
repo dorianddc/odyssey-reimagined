@@ -270,25 +270,6 @@ function DataDashboard() {
             situationHistory={situationHistory}
           />
         </section>
-            {timelineData.length === 0 ? (
-              <div className="h-[260px] grid place-items-center text-ink-soft font-semibold text-sm">
-                Aucune situation enregistrée pour ce périmètre.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={timelineData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.2)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fontWeight: 700 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: "oklch(0.18 0.02 240)", border: "3px solid oklch(0.1 0 0)", borderRadius: 12, fontWeight: 700 }} labelStyle={{ color: "oklch(0.95 0 0)" }} />
-                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
-                  <Line type="monotone" dataKey="etoiles" name="Étoiles validées" stroke="oklch(0.82 0.18 95)" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="progresseurs" name="Élèves progressés" stroke="oklch(0.65 0.18 240)" strokeWidth={3} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </section>
 
         {/* Database Manager — sauvegarde / restauration JSON */}
         <DatabaseManager />
