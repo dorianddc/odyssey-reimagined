@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClassClassIdIndexRouteImport } from './routes/class.$classId.index'
 import { Route as ClassClassIdSituationRouteImport } from './routes/class.$classId.situation'
@@ -16,6 +17,11 @@ import { Route as ClassClassIdParcoursRouteImport } from './routes/class.$classI
 import { Route as ClassClassIdHistoriqueRouteImport } from './routes/class.$classId.historique'
 import { Route as ClassClassIdStudentStudentIdRouteImport } from './routes/class.$classId.student.$studentId'
 
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -50,6 +56,7 @@ const ClassClassIdStudentStudentIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/class/$classId/historique': typeof ClassClassIdHistoriqueRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
   '/class/$classId/situation': typeof ClassClassIdSituationRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/class/$classId/historique': typeof ClassClassIdHistoriqueRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
   '/class/$classId/situation': typeof ClassClassIdSituationRoute
@@ -67,6 +75,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/class/$classId/historique': typeof ClassClassIdHistoriqueRoute
   '/class/$classId/parcours': typeof ClassClassIdParcoursRoute
   '/class/$classId/situation': typeof ClassClassIdSituationRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/dashboard'
     | '/class/$classId/historique'
     | '/class/$classId/parcours'
     | '/class/$classId/situation'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard'
     | '/class/$classId/historique'
     | '/class/$classId/parcours'
     | '/class/$classId/situation'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/dashboard'
     | '/class/$classId/historique'
     | '/class/$classId/parcours'
     | '/class/$classId/situation'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   ClassClassIdHistoriqueRoute: typeof ClassClassIdHistoriqueRoute
   ClassClassIdParcoursRoute: typeof ClassClassIdParcoursRoute
   ClassClassIdSituationRoute: typeof ClassClassIdSituationRoute
@@ -111,6 +124,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   ClassClassIdHistoriqueRoute: ClassClassIdHistoriqueRoute,
   ClassClassIdParcoursRoute: ClassClassIdParcoursRoute,
   ClassClassIdSituationRoute: ClassClassIdSituationRoute,

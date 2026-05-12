@@ -103,6 +103,13 @@ function Hub() {
           <Trophy className="text-primary" strokeWidth={3} />
           <h2 className="font-display text-3xl tracking-wide">Sélectionnez une classe</h2>
           <div className="flex-1 h-1 bg-ink/10 rounded-full" />
+          <button
+            onClick={() => navigate({ to: "/dashboard" })}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface border-[3px] border-ink shadow-pop-sm font-display uppercase text-xs tracking-wider hover:-translate-y-0.5 hover:bg-gradient-sun transition-all"
+            title="Tableau de bord analytique"
+          >
+            <BarChart3 size={14} strokeWidth={3} /> Analyses & Données
+          </button>
           <PopButton variant="primary" size="sm" onClick={() => setOpenAdd(true)}>
             <Plus size={16} strokeWidth={3} /> Ajouter une classe
           </PopButton>
