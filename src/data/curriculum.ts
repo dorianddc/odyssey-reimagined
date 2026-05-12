@@ -333,38 +333,27 @@ export const calculateLevelFromStars = (skillStates: Record<string, number>, cyc
   return Math.max(1, Math.min(MAX_LEVEL, Math.round(baseLevel)));
 };
 
+// Génère la liste nominative d'une classe SANS aucune compétence acquise.
+// Aucune donnée aléatoire : skillStates {} et difficulties [] vides.
+// Le niveau est strictement calculé à partir d'un état vide → niveau plancher du cycle.
+// Toute progression future doit provenir de bumpSkill / recordSituation.
 export const generateClassStudents = (classId: string): Student[] => {
   const namesF = ["Emma", "Sarah", "Jade", "Lea", "Manon", "Chloe", "Ines", "Camille", "Lola", "Zoe", "Maya", "Clara", "Eva", "Louise", "Alice"];
   const namesM = ["Lucas", "Nathan", "Kevin", "Thomas", "Hugo", "Arthur", "Jules", "Enzo", "Gabriel", "Louis", "Paul", "Leo", "Maxime", "Antoine", "Noah"];
   const cycle: Cycle = classId.startsWith("6") ? "cycle3" : "cycle4";
-  const allSkills = Object.values(CURRICULUM[cycle].categories).flatMap((c) => c.skills);
-  const seedRand = (seed: number) => {
-    let x = seed;
-    return () => {
-      x = (x * 9301 + 49297) % 233280;
-      return x / 233280;
-    };
-  };
-  const make = (name: string, gender: "F" | "M", idx: number): Student => {
-    const rand = seedRand(name.charCodeAt(0) + idx * 31 + classId.charCodeAt(0));
-    // give a realistic distribution of stars
-    const skillStates: Record<string, number> = {};
-    const skill = Math.floor(rand() * 5); // overall ability bias 0..4
-    allSkills.forEach((s) => {
-      const r = rand();
-      const stars = Math.max(0, Math.min(5, Math.round(skill + (r - 0.5) * 3)));
-      if (stars > 0) skillStates[s.id] = stars;
-    });
-    return {
-      id: `${classId}-${gender}${idx}`,
-      name,
-      gender,
-      level: calculateLevelFromStars(skillStates, cycle),
-      skillStates,
-      stagnations: [], difficulties: [],
-      avatarHue: Math.floor(rand() * 360),
-    };
-  };
+  // Hue déterministe (sans Math.random) pour la couleur d'avatar — pas de simulation pédagogique.
+  const hueFor = (name: string, idx: number) =>
+    (name.charCodeAt(0) * 17 + idx * 53 + classId.charCodeAt(0) * 11) % 360;
+  const make = (name: string, gender: "F" | "M", idx: number): Student => ({
+    id: `${classId}-${gender}${idx}`,
+    name,
+    gender,
+    level: calculateLevelFromStars({}, cycle),
+    skillStates: {},
+    stagnations: [],
+    difficulties: [],
+    avatarHue: hueFor(name, idx),
+  });
   return [
     ...namesF.map((n, i) => make(n, "F", i)),
     ...namesM.map((n, i) => make(n, "M", i)),

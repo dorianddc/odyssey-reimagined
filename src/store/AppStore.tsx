@@ -67,9 +67,9 @@ interface AppStore {
 
 const Ctx = createContext<AppStore | null>(null);
 
-const LS_CLASSES = "db_classes_v1";
-const LS_STUDENTS = "db_students_v1";
-const LS_HISTORY = "db_situation_history_v1";
+export const LS_CLASSES = "db_classes_v1";
+export const LS_STUDENTS = "db_students_v1";
+export const LS_HISTORY = "db_situation_history_v1";
 
 const EMOJI_POOL = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "💎", "🦁", "🐻", "🐯", "🦅", "🐺", "🦄", "🐲", "🌟"];
 
