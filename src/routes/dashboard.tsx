@@ -56,12 +56,6 @@ const lastTierFor = (lvl: number): string => {
   return b ? `${b.key} (Nv ${b.min}-${b.max})` : "—";
 };
 
-const DIM_OPTIONS: { value: "all" | DimensionKey; label: string }[] = [
-  { value: "all", label: "Toutes" },
-  { value: "moteur", label: "Motrice" },
-  { value: "methodo", label: "Méthodologique" },
-  { value: "social", label: "Sociale" },
-];
 
 type SortKey = "name" | "gender" | "level" | "diffs" | "tier";
 type SortDir = "asc" | "desc";
@@ -92,19 +86,6 @@ function DataDashboard() {
   const students = studentsByClass[classId] || [];
   const cls = classes.find((c) => c.id === classId);
   const cycle = cls?.cycle ?? "cycle3";
-
-  // Filtres pour le graphique d'évolution
-  const [dimFilter, setDimFilter] = useState<"all" | DimensionKey>("all");
-  const [skillFilter, setSkillFilter] = useState<string>("all"); // skillId | "all"
-  // Liste des compétences sélectionnables selon la dimension
-  const skillOptions = useMemo(() => {
-    const cats = CURRICULUM[cycle]?.categories;
-    if (!cats) return [];
-    const dims: DimensionKey[] = dimFilter === "all" ? ["moteur", "methodo", "social"] : [dimFilter];
-    return dims.flatMap((d) => cats[d].skills.map((s) => ({ id: s.id, code: s.code, name: s.name })));
-  }, [cycle, dimFilter]);
-  // Si la dimension change, on reset la compétence
-  useEffect(() => { setSkillFilter("all"); }, [dimFilter, classId]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -146,14 +127,6 @@ function DataDashboard() {
     eleves: students.filter((s) => s.level >= b.min && s.level <= b.max).length,
     color: b.color,
   })), [students]);
-
-  // LineChart : évolution temporelle, filtrée par dimension/compétence
-  const timelineData = useMemo(() => {
-    const records = situationHistory
-      .filter((r) => r.classId === classId)
-      .slice()
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    return records.map((r, i) => {
       // Filtrage des entrées progressed selon dimension / compétence sélectionnée
       const filteredProg = r.progressed.filter((p) => {
         if (skillFilter !== "all") return p.skillId === skillFilter;
