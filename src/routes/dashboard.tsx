@@ -23,7 +23,7 @@ import {
   Users, Gauge, AlertTriangle, Crown,
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend,
 } from "recharts";
 import { useAppStore } from "@/store/AppStore";
