@@ -23,12 +23,12 @@ import {
 } from "lucide-react";
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend,
 } from "recharts";
 import { useAppStore, LS_CLASSES, LS_STUDENTS, LS_HISTORY } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { cn } from "@/lib/utils";
-import { CURRICULUM, findSkillMeta, type Student, type DimensionKey } from "@/data/curriculum";
+import { type Student } from "@/data/curriculum";
+import { AdvancedChartExplorer } from "@/components/dashboard/AdvancedChartExplorer";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
