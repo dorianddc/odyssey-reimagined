@@ -1,35 +1,34 @@
 // ============================================================================
 // DataDashboard — Tableau de bord analytique interne (équivalent tableur)
 // ----------------------------------------------------------------------------
-// Ce module REMPLACE un Google Sheets externe. Il exploite directement
-// `useAppStore` (studentsByClass, classes, situationHistory) pour calculer
-// en temps réel les indicateurs pédagogiques d'une classe.
+// Remplace l'usage d'un Google Sheets externe. Calculs en temps réel à partir
+// de useAppStore (studentsByClass, classes, situationHistory).
 //
-// Équivalences "tableur" implémentées (signalées par des commentaires) :
-//   - SOMME / NB.VAL  -> reduce + length
-//   - MOYENNE         -> reduce / length
-//   - ARRONDI         -> Math.round(x * 10) / 10  (1 décimale)
-//   - SI              -> ternaire / conditions JSX
-//   - NB.SI           -> filter(...).length
-//   - TRIS            -> sort() + état (sortKey, sortDir)
-//   - FILTRES         -> filter() + <select>
-//   - Mise en forme conditionnelle -> classes Tailwind conditionnelles
-//   - GRAPHIQUES      -> Recharts (BarChart, LineChart)
+// Équivalences "tableur" :
+//   SOMME / NB.VAL  -> reduce / length
+//   MOYENNE         -> reduce / length
+//   ARRONDI         -> Math.round(x * 10) / 10
+//   SI              -> ternaire
+//   NB.SI           -> filter(...).length
+//   TRIS            -> sort()
+//   FILTRES         -> filter() + <select>
+//   Mise en forme conditionnelle -> classes Tailwind conditionnelles
+//   GRAPHIQUES      -> Recharts (BarChart, LineChart)
 // ============================================================================
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft, BarChart3, ArrowUpDown, ArrowUp, ArrowDown,
-  Users, Gauge, AlertTriangle, Crown,
+  Users, Gauge, AlertTriangle, Crown, Database, Download, Upload,
 } from "lucide-react";
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend,
 } from "recharts";
-import { useAppStore } from "@/store/AppStore";
+import { useAppStore, LS_CLASSES, LS_STUDENTS, LS_HISTORY } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { cn } from "@/lib/utils";
-import type { Student } from "@/data/curriculum";
+import { CURRICULUM, findSkillMeta, type Student, type DimensionKey } from "@/data/curriculum";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -42,28 +41,28 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 // ---------------------------------------------------------------------------
-// Helpers — Biomes (cf. /parcours) pour le graphique de répartition
+// Helpers — Biomes (cf. /parcours)
 // ---------------------------------------------------------------------------
 type BiomeKey = "Initiation" | "Maîtrise" | "Champion" | "Olympe";
 const BIOME_RANGES: { key: BiomeKey; min: number; max: number; color: string }[] = [
-  { key: "Initiation", min: 1,  max: 6,  color: "oklch(0.72 0.16 60)"  }, // bronze
-  { key: "Maîtrise",   min: 7,  max: 12, color: "oklch(0.75 0.05 240)" }, // silver
-  { key: "Champion",   min: 13, max: 17, color: "oklch(0.82 0.18 95)"  }, // gold
-  { key: "Olympe",     min: 18, max: 22, color: "oklch(0.78 0.14 320)" }, // platinum
+  { key: "Initiation", min: 1,  max: 6,  color: "oklch(0.72 0.16 60)"  },
+  { key: "Maîtrise",   min: 7,  max: 12, color: "oklch(0.75 0.05 240)" },
+  { key: "Champion",   min: 13, max: 17, color: "oklch(0.82 0.18 95)"  },
+  { key: "Olympe",     min: 18, max: 22, color: "oklch(0.78 0.14 320)" },
 ];
-const biomeFor = (lvl: number): BiomeKey =>
-  (BIOME_RANGES.find((b) => lvl >= b.min && lvl <= b.max) ?? BIOME_RANGES[0]).key;
-
-// Comptage NB.SI : nombre de difficultés non résolues d'un élève
 const countDifficulties = (s: Student) => (s.difficulties?.length ?? 0) + (s.stagnations?.length ?? 0);
-
-// Dernier palier atteint = niveau du dernier biome franchi
 const lastTierFor = (lvl: number): string => {
   const b = BIOME_RANGES.find((b) => lvl >= b.min && lvl <= b.max);
   return b ? `${b.key} (Nv ${b.min}-${b.max})` : "—";
 };
 
-// ---------------------------------------------------------------------------
+const DIM_OPTIONS: { value: "all" | DimensionKey; label: string }[] = [
+  { value: "all", label: "Toutes" },
+  { value: "moteur", label: "Motrice" },
+  { value: "methodo", label: "Méthodologique" },
+  { value: "social", label: "Sociale" },
+];
+
 type SortKey = "name" | "gender" | "level" | "diffs" | "tier";
 type SortDir = "asc" | "desc";
 
@@ -72,15 +71,17 @@ function DataDashboard() {
   const { setBgm } = useAudio();
   useEffect(() => { setBgm("hub"); }, [setBgm]);
 
+  // Gate après mount pour éviter les mismatch d'hydratation (localStorage côté client uniquement)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const [classId, setClassId] = useState<string>(classes[0]?.id ?? "");
   useEffect(() => { if (classId) ensureClass(classId); }, [classId, ensureClass]);
   useEffect(() => { if (!classId && classes[0]) setClassId(classes[0].id); }, [classes, classId]);
 
-  // Filtres (équivalent Filtres tableur)
   const [genderFilter, setGenderFilter] = useState<"all" | "F" | "M">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "diff" | "ok">("all");
 
-  // Tris (équivalent Tris tableur)
   const [sortKey, setSortKey] = useState<SortKey>("level");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const toggleSort = (k: SortKey) => {
@@ -89,33 +90,37 @@ function DataDashboard() {
   };
 
   const students = studentsByClass[classId] || [];
+  const cls = classes.find((c) => c.id === classId);
+  const cycle = cls?.cycle ?? "cycle3";
 
-  // =========================================================================
-  // KPIs — équivalents SOMME, MOYENNE+ARRONDI, NB.SI, SI/Ratio
-  // =========================================================================
+  // Filtres pour le graphique d'évolution
+  const [dimFilter, setDimFilter] = useState<"all" | DimensionKey>("all");
+  const [skillFilter, setSkillFilter] = useState<string>("all"); // skillId | "all"
+  // Liste des compétences sélectionnables selon la dimension
+  const skillOptions = useMemo(() => {
+    const cats = CURRICULUM[cycle]?.categories;
+    if (!cats) return [];
+    const dims: DimensionKey[] = dimFilter === "all" ? ["moteur", "methodo", "social"] : [dimFilter];
+    return dims.flatMap((d) => cats[d].skills.map((s) => ({ id: s.id, code: s.code, name: s.name })));
+  }, [cycle, dimFilter]);
+  // Si la dimension change, on reset la compétence
+  useEffect(() => { setSkillFilter("all"); }, [dimFilter, classId]);
+
+  // KPIs
   const kpis = useMemo(() => {
-    // Équivalent NB.VAL : effectif
     const effectif = students.length;
-    // Équivalent SOMME : total des niveaux
     const sumLevels = students.reduce((acc, s) => acc + s.level, 0);
-    // Équivalent MOYENNE + ARRONDI (1 décimale)
     const avgLevel = effectif > 0 ? Math.round((sumLevels / effectif) * 10) / 10 : 0;
-    // Équivalent NB.SI : élèves avec au moins 1 difficulté ou 1 stagnation
     const enAlerte = students.filter((s) => countDifficulties(s) >= 1).length;
-    // Équivalent SI / Ratio : % élèves > niveau 12
     const maitrise = students.filter((s) => s.level > 12).length;
     const tauxMaitrise = effectif > 0 ? Math.round((maitrise / effectif) * 1000) / 10 : 0;
     return { effectif, avgLevel, enAlerte, tauxMaitrise };
   }, [students]);
 
-  // =========================================================================
-  // TABLEAU — Filtres + Tris
-  // =========================================================================
+  // Tableau
   const tableRows = useMemo(() => {
     const rows = students
-      // Équivalent FILTRE par Genre
       .filter((s) => genderFilter === "all" || s.gender === genderFilter)
-      // Équivalent FILTRE par Statut (SI difficulté)
       .filter((s) => {
         const n = countDifficulties(s);
         if (statusFilter === "diff") return n > 0;
@@ -123,64 +128,56 @@ function DataDashboard() {
         return true;
       })
       .map((s) => ({
-        id: s.id,
-        name: s.name,
-        gender: s.gender,
-        level: s.level,
-        diffs: countDifficulties(s),
-        tier: lastTierFor(s.level),
+        id: s.id, name: s.name, gender: s.gender, level: s.level,
+        diffs: countDifficulties(s), tier: lastTierFor(s.level),
       }));
-
-    // Équivalent TRI tableur
     rows.sort((a, b) => {
-      const va = a[sortKey];
-      const vb = b[sortKey];
+      const va = a[sortKey], vb = b[sortKey];
       const cmp = typeof va === "number" && typeof vb === "number"
-        ? va - vb
-        : String(va).localeCompare(String(vb), "fr");
+        ? va - vb : String(va).localeCompare(String(vb), "fr");
       return sortDir === "asc" ? cmp : -cmp;
     });
     return rows;
   }, [students, genderFilter, statusFilter, sortKey, sortDir]);
 
-  // =========================================================================
-  // GRAPHIQUE 1 — Répartition par Biome (BarChart)
-  // =========================================================================
-  const biomeData = useMemo(() => {
-    return BIOME_RANGES.map((b) => ({
-      biome: b.key,
-      // Équivalent NB.SI sur l'intervalle [min, max]
-      eleves: students.filter((s) => s.level >= b.min && s.level <= b.max).length,
-      color: b.color,
-    }));
-  }, [students]);
+  // BarChart : répartition par biome
+  const biomeData = useMemo(() => BIOME_RANGES.map((b) => ({
+    biome: b.key,
+    eleves: students.filter((s) => s.level >= b.min && s.level <= b.max).length,
+    color: b.color,
+  })), [students]);
 
-  // =========================================================================
-  // GRAPHIQUE 2 — Évolution temporelle (LineChart) à partir de situationHistory
-  // =========================================================================
+  // LineChart : évolution temporelle, filtrée par dimension/compétence
   const timelineData = useMemo(() => {
     const records = situationHistory
       .filter((r) => r.classId === classId)
-      // tri chronologique ascendant pour la courbe
       .slice()
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    return records.map((r, i) => ({
-      // libellé court : date FR
-      label: `S${i + 1} · ${new Date(r.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`,
-      // Équivalent SOMME : nombre d'étoiles validées (chaque progression compte les étoiles gagnées)
-      etoiles: r.progressed.reduce((acc, p) => acc + Math.max(0, p.after - p.before), 0),
-      // Équivalent NB.VAL : nombre d'élèves distincts ayant progressé
-      progresseurs: new Set(r.progressed.map((p) => p.studentId)).size,
-    }));
-  }, [situationHistory, classId]);
+    return records.map((r, i) => {
+      // Filtrage des entrées progressed selon dimension / compétence sélectionnée
+      const filteredProg = r.progressed.filter((p) => {
+        if (skillFilter !== "all") return p.skillId === skillFilter;
+        if (dimFilter !== "all") {
+          const meta = findSkillMeta(cycle, p.skillId);
+          return meta?.dimension === dimFilter;
+        }
+        return true;
+      });
+      return {
+        label: `S${i + 1} · ${new Date(r.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`,
+        // SOMME des étoiles validées (delta after - before) sur les entrées filtrées
+        etoiles: filteredProg.reduce((acc, p) => acc + Math.max(0, p.after - p.before), 0),
+        // NB.VAL d'élèves distincts ayant progressé sur ce périmètre
+        progresseurs: new Set(filteredProg.map((p) => p.studentId)).size,
+      };
+    });
+  }, [situationHistory, classId, dimFilter, skillFilter, cycle]);
 
-  // =========================================================================
-  // Helpers d'affichage — mise en forme conditionnelle (équivalent tableur)
-  // =========================================================================
+  // Helpers d'affichage
   const levelBadgeClass = (lvl: number) => {
-    if (lvl < 6)  return "bg-hot/15 text-hot border-hot/40";              // rouge/orange
-    if (lvl <= 15) return "bg-primary/15 text-primary border-primary/40"; // bleu
-    return "bg-gradient-sun text-ink border-ink shadow-[0_0_18px_oklch(0.85_0.18_85)]"; // or/glow
+    if (lvl < 6)  return "bg-hot/15 text-hot border-hot/40";
+    if (lvl <= 15) return "bg-primary/15 text-primary border-primary/40";
+    return "bg-gradient-sun text-ink border-ink shadow-[0_0_18px_oklch(0.85_0.18_85)]";
   };
   const rowAlertClass = (diffs: number) =>
     diffs > 2
@@ -193,12 +190,8 @@ function DataDashboard() {
 
   return (
     <main className="min-h-screen px-4 md:px-8 py-8 md:py-12">
-      {/* Header */}
       <header className="max-w-7xl mx-auto mb-8 flex flex-wrap items-center gap-3">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface border-[3px] border-ink shadow-pop-sm font-display uppercase text-xs hover:-translate-y-0.5 transition-transform"
-        >
+        <Link to="/" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface border-[3px] border-ink shadow-pop-sm font-display uppercase text-xs hover:-translate-y-0.5 transition-transform">
           <ArrowLeft size={14} strokeWidth={3} /> Hub
         </Link>
         <div className="flex items-center gap-2">
@@ -211,30 +204,22 @@ function DataDashboard() {
           onChange={(e) => setClassId(e.target.value)}
           className="bg-surface border-[3px] border-ink rounded-xl px-3 py-2 font-display uppercase text-xs tracking-wider shadow-pop-sm"
         >
-          {classes.map((c) => (
-            <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
-          ))}
+          {classes.map((c) => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
         </select>
       </header>
 
+      {!mounted ? (
+        <div className="max-w-7xl mx-auto py-20 text-center text-ink-soft font-semibold">Chargement…</div>
+      ) : (
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* =================================================================
-            KPIs — Cartes statistiques (Somme / Moyenne+Arrondi / NB.SI / SI)
-            ================================================================= */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={<Users />} label="Effectif Total" value={kpis.effectif}
-            sub="Équivalent NB.VAL / SOMME" tone="primary" />
-          <KpiCard icon={<Gauge />} label="Niveau Moyen" value={kpis.avgLevel}
-            sub="MOYENNE + ARRONDI(1)" tone="info" />
-          <KpiCard icon={<AlertTriangle />} label="Élèves en Alerte" value={kpis.enAlerte}
-            sub="NB.SI(difficultés ≥ 1)" tone="hot" />
-          <KpiCard icon={<Crown />} label="Taux de Maîtrise" value={`${kpis.tauxMaitrise}%`}
-            sub="SI(niveau > 12)" tone="gold" />
+          <KpiCard icon={<Users />} label="Effectif Total" value={kpis.effectif} sub="Équivalent NB.VAL / SOMME" tone="primary" />
+          <KpiCard icon={<Gauge />} label="Niveau Moyen" value={kpis.avgLevel} sub="MOYENNE + ARRONDI(1)" tone="info" />
+          <KpiCard icon={<AlertTriangle />} label="Élèves en Alerte" value={kpis.enAlerte} sub="NB.SI(difficultés ≥ 1)" tone="hot" />
+          <KpiCard icon={<Crown />} label="Taux de Maîtrise" value={`${kpis.tauxMaitrise}%`} sub="SI(niveau > 12)" tone="gold" />
         </section>
 
-        {/* =================================================================
-            TABLEAU DE DONNÉES — Filtres + Tris + Mise en forme conditionnelle
-            ================================================================= */}
+        {/* Tableau */}
         <section className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 p-4 border-b-[3px] border-ink bg-surface-2">
             <h2 className="font-display text-xl tracking-wide flex items-center gap-2">
@@ -242,35 +227,22 @@ function DataDashboard() {
               Élèves de la classe
             </h2>
             <div className="flex-1" />
-            {/* FILTRE Genre */}
             <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
               Genre
-              <select
-                value={genderFilter}
-                onChange={(e) => setGenderFilter(e.target.value as "all" | "F" | "M")}
-                className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px]"
-              >
-                <option value="all">Tous</option>
-                <option value="F">Filles</option>
-                <option value="M">Garçons</option>
+              <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value as "all" | "F" | "M")}
+                className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px]">
+                <option value="all">Tous</option><option value="F">Filles</option><option value="M">Garçons</option>
               </select>
             </label>
-            {/* FILTRE Statut */}
             <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
               Statut
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as "all" | "diff" | "ok")}
-                className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px]"
-              >
-                <option value="all">Tous</option>
-                <option value="diff">En difficulté</option>
-                <option value="ok">Sans difficulté</option>
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "diff" | "ok")}
+                className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px]">
+                <option value="all">Tous</option><option value="diff">En difficulté</option><option value="ok">Sans difficulté</option>
               </select>
             </label>
           </div>
 
-          {/* Scroll horizontal sur mobile (responsive) */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-surface-2 border-b-[3px] border-ink">
@@ -289,31 +261,23 @@ function DataDashboard() {
                   </td></tr>
                 )}
                 {tableRows.map((r) => (
-                  // Mise en forme conditionnelle SI(diffs > 2) → fond rouge hachuré
                   <tr key={r.id} className={cn("border-b border-ink/10 hover:bg-surface-2/60 transition-colors", rowAlertClass(r.diffs))}>
                     <td className="px-4 py-3 font-bold">{r.name}</td>
                     <td className="px-4 py-3">
-                      <span className={cn(
-                        "inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border-2 border-ink",
-                        r.gender === "F" ? "bg-pink-200/40 text-pink-800" : "bg-blue-200/40 text-blue-800"
-                      )}>
+                      <span className={cn("inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border-2 border-ink",
+                        r.gender === "F" ? "bg-pink-200/40 text-pink-800" : "bg-blue-200/40 text-blue-800")}>
                         {r.gender === "F" ? "Fille" : "Garçon"}
                       </span>
                     </td>
-                    {/* Mise en forme conditionnelle sur Niveau Global */}
                     <td className="px-4 py-3">
                       <span className={cn("inline-block px-2.5 py-1 rounded-lg text-xs font-display border-2", levelBadgeClass(r.level))}>
                         Nv {r.level}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {/* NB.SI rendu par cellule : 0 vert, 1-2 orange, >2 rouge */}
-                      <span className={cn(
-                        "inline-block px-2 py-0.5 rounded-md text-[11px] font-bold border-2 border-ink",
+                      <span className={cn("inline-block px-2 py-0.5 rounded-md text-[11px] font-bold border-2 border-ink",
                         r.diffs === 0 ? "bg-emerald-200/50 text-emerald-900" :
-                        r.diffs <= 2 ? "bg-amber-200/60 text-amber-900" :
-                        "bg-hot/20 text-hot"
-                      )}>
+                        r.diffs <= 2 ? "bg-amber-200/60 text-amber-900" : "bg-hot/20 text-hot")}>
                         {r.diffs}
                       </span>
                     </td>
@@ -325,11 +289,8 @@ function DataDashboard() {
           </div>
         </section>
 
-        {/* =================================================================
-            GRAPHIQUES — Recharts (BarChart + LineChart)
-            ================================================================= */}
+        {/* Graphiques */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Bar — Répartition par biome */}
           <div className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop p-5">
             <h3 className="font-display text-lg tracking-wide mb-1">Répartition par Biome</h3>
             <p className="text-xs text-ink-soft font-semibold mb-4">NB.SI(niveau ∈ [min, max]) pour chaque palier</p>
@@ -338,29 +299,41 @@ function DataDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.2)" />
                 <XAxis dataKey="biome" tick={{ fontSize: 11, fontWeight: 700 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{ background: "oklch(0.18 0.02 240)", border: "3px solid oklch(0.1 0 0)", borderRadius: 12, fontWeight: 700 }}
-                  labelStyle={{ color: "oklch(0.95 0 0)" }}
-                />
+                <Tooltip contentStyle={{ background: "oklch(0.18 0.02 240)", border: "3px solid oklch(0.1 0 0)", borderRadius: 12, fontWeight: 700 }} labelStyle={{ color: "oklch(0.95 0 0)" }} />
                 <Bar dataKey="eleves" name="Élèves" radius={[8, 8, 0, 0]}>
-                  {biomeData.map((b, i) => (
-                    // Couleur dynamique par cellule (équivalent format conditionnel)
-                    <Cell key={i} fill={b.color} />
-                  ))}
+                  {biomeData.map((b, i) => (<Cell key={i} fill={b.color} />))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Line — Évolution temporelle */}
           <div className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop p-5">
-            <h3 className="font-display text-lg tracking-wide mb-1">Dynamique d'apprentissage</h3>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <h3 className="font-display text-lg tracking-wide flex-1">Suivi d'apprentissage</h3>
+              {/* Filtre Dimension */}
+              <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                Dim.
+                <select value={dimFilter} onChange={(e) => setDimFilter(e.target.value as "all" | DimensionKey)}
+                  className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px]">
+                  {DIM_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+                </select>
+              </label>
+              {/* Filtre Compétence */}
+              <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                Compét.
+                <select value={skillFilter} onChange={(e) => setSkillFilter(e.target.value)}
+                  className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px] max-w-[180px]">
+                  <option value="all">Toutes</option>
+                  {skillOptions.map((s) => (<option key={s.id} value={s.id}>{s.code} · {s.name.slice(0, 28)}{s.name.length > 28 ? "…" : ""}</option>))}
+                </select>
+              </label>
+            </div>
             <p className="text-xs text-ink-soft font-semibold mb-4">
-              SOMME(étoiles validées) & NB(élèves ayant progressé) par situation enregistrée
+              SOMME(étoiles validées) & NB(élèves ayant progressé) — recalcul en temps réel sur le périmètre filtré
             </p>
             {timelineData.length === 0 ? (
               <div className="h-[260px] grid place-items-center text-ink-soft font-semibold text-sm">
-                Aucune situation enregistrée pour cette classe.
+                Aucune situation enregistrée pour ce périmètre.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
@@ -368,10 +341,7 @@ function DataDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.2)" />
                   <XAxis dataKey="label" tick={{ fontSize: 10, fontWeight: 700 }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    contentStyle={{ background: "oklch(0.18 0.02 240)", border: "3px solid oklch(0.1 0 0)", borderRadius: 12, fontWeight: 700 }}
-                    labelStyle={{ color: "oklch(0.95 0 0)" }}
-                  />
+                  <Tooltip contentStyle={{ background: "oklch(0.18 0.02 240)", border: "3px solid oklch(0.1 0 0)", borderRadius: 12, fontWeight: 700 }} labelStyle={{ color: "oklch(0.95 0 0)" }} />
                   <Legend wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
                   <Line type="monotone" dataKey="etoiles" name="Étoiles validées" stroke="oklch(0.82 0.18 95)" strokeWidth={3} dot={{ r: 4 }} />
                   <Line type="monotone" dataKey="progresseurs" name="Élèves progressés" stroke="oklch(0.65 0.18 240)" strokeWidth={3} dot={{ r: 4 }} />
@@ -381,23 +351,113 @@ function DataDashboard() {
           </div>
         </section>
 
+        {/* Database Manager — sauvegarde / restauration JSON */}
+        <DatabaseManager />
+
         <footer className="text-center text-[10px] text-ink-soft/70 font-semibold uppercase tracking-widest pt-2 pb-8">
           📊 Tableau de bord analytique · Données calculées en temps réel
         </footer>
       </div>
+      )}
     </main>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Sous-composants visuels
+// DatabaseManager — Export / Import JSON des 3 clés du localStorage
+// ---------------------------------------------------------------------------
+function DatabaseManager() {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const handleExport = () => {
+    try {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        [LS_CLASSES]: JSON.parse(localStorage.getItem(LS_CLASSES) || "null"),
+        [LS_STUDENTS]: JSON.parse(localStorage.getItem(LS_STUDENTS) || "null"),
+        [LS_HISTORY]: JSON.parse(localStorage.getItem(LS_HISTORY) || "null"),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sauvegarde-odyssee-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      setMsg("✅ Sauvegarde exportée.");
+    } catch (e) {
+      setMsg("❌ Erreur lors de l'export.");
+    }
+  };
+
+  const handleImportFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result));
+        if (!data || typeof data !== "object") throw new Error("Fichier invalide");
+        const ok = window.confirm(
+          "⚠️ Restaurer cette sauvegarde va ÉCRASER les données actuelles. Continuer ?"
+        );
+        if (!ok) return;
+        // Écrase chacune des 3 clés (si présentes dans le fichier)
+        if (data[LS_CLASSES] !== undefined) localStorage.setItem(LS_CLASSES, JSON.stringify(data[LS_CLASSES]));
+        if (data[LS_STUDENTS] !== undefined) localStorage.setItem(LS_STUDENTS, JSON.stringify(data[LS_STUDENTS]));
+        if (data[LS_HISTORY] !== undefined) localStorage.setItem(LS_HISTORY, JSON.stringify(data[LS_HISTORY]));
+        setMsg("✅ Restauration OK — rechargement…");
+        setTimeout(() => window.location.reload(), 400);
+      } catch {
+        setMsg("❌ Fichier JSON invalide.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <section className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Database className="text-primary" strokeWidth={3} size={20} />
+        <h3 className="font-display text-lg tracking-wide">Gestionnaire de base (Sauvegarde / Restauration)</h3>
+      </div>
+      <p className="text-xs text-ink-soft font-semibold mb-4">
+        Exporte ou restaure les 3 clés persistées (classes, élèves, historique des situations) en un fichier JSON unique.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={handleExport}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground border-[3px] border-ink shadow-pop-sm font-display uppercase text-xs tracking-wider hover:-translate-y-0.5 transition-transform"
+        >
+          <Download size={14} strokeWidth={3} /> Exporter la base (JSON)
+        </button>
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface border-[3px] border-ink shadow-pop-sm font-display uppercase text-xs tracking-wider hover:-translate-y-0.5 transition-transform"
+        >
+          <Upload size={14} strokeWidth={3} /> Restaurer la base (JSON)
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleImportFile(f);
+            e.target.value = "";
+          }}
+        />
+      </div>
+      {msg && <div className="mt-3 text-sm font-semibold">{msg}</div>}
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------
 function KpiCard({
   icon, label, value, sub, tone,
-}: {
-  icon: React.ReactNode; label: string; value: string | number; sub: string;
-  tone: "primary" | "info" | "hot" | "gold";
-}) {
+}: { icon: React.ReactNode; label: string; value: string | number; sub: string; tone: "primary" | "info" | "hot" | "gold"; }) {
   const toneCls: Record<string, string> = {
     primary: "from-primary/30 to-primary/5 text-primary",
     info:    "from-sky-400/30 to-sky-400/5 text-sky-500",
@@ -423,10 +483,7 @@ function KpiCard({
 
 function Th({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <th
-      onClick={onClick}
-      className="px-4 py-3 cursor-pointer select-none hover:bg-surface/60 transition-colors"
-    >
+    <th onClick={onClick} className="px-4 py-3 cursor-pointer select-none hover:bg-surface/60 transition-colors">
       <span className="inline-flex items-center gap-1.5">{children}</span>
     </th>
   );
