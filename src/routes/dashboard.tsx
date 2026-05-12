@@ -345,7 +345,7 @@ function DataDashboard() {
                 <Bar dataKey="eleves" name="Élèves" radius={[8, 8, 0, 0]}>
                   {biomeData.map((b, i) => (
                     // Couleur dynamique par cellule (équivalent format conditionnel)
-                    <rect key={i} fill={b.color} />
+                    <Cell key={i} fill={b.color} />
                   ))}
                 </Bar>
               </BarChart>
