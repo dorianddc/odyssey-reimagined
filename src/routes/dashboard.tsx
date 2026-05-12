@@ -23,12 +23,12 @@ import {
 } from "lucide-react";
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend,
 } from "recharts";
 import { useAppStore, LS_CLASSES, LS_STUDENTS, LS_HISTORY } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { cn } from "@/lib/utils";
-import { CURRICULUM, findSkillMeta, type Student, type DimensionKey } from "@/data/curriculum";
+import { type Student } from "@/data/curriculum";
+import { AdvancedChartExplorer } from "@/components/dashboard/AdvancedChartExplorer";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -56,12 +56,6 @@ const lastTierFor = (lvl: number): string => {
   return b ? `${b.key} (Nv ${b.min}-${b.max})` : "—";
 };
 
-const DIM_OPTIONS: { value: "all" | DimensionKey; label: string }[] = [
-  { value: "all", label: "Toutes" },
-  { value: "moteur", label: "Motrice" },
-  { value: "methodo", label: "Méthodologique" },
-  { value: "social", label: "Sociale" },
-];
 
 type SortKey = "name" | "gender" | "level" | "diffs" | "tier";
 type SortDir = "asc" | "desc";
@@ -92,19 +86,6 @@ function DataDashboard() {
   const students = studentsByClass[classId] || [];
   const cls = classes.find((c) => c.id === classId);
   const cycle = cls?.cycle ?? "cycle3";
-
-  // Filtres pour le graphique d'évolution
-  const [dimFilter, setDimFilter] = useState<"all" | DimensionKey>("all");
-  const [skillFilter, setSkillFilter] = useState<string>("all"); // skillId | "all"
-  // Liste des compétences sélectionnables selon la dimension
-  const skillOptions = useMemo(() => {
-    const cats = CURRICULUM[cycle]?.categories;
-    if (!cats) return [];
-    const dims: DimensionKey[] = dimFilter === "all" ? ["moteur", "methodo", "social"] : [dimFilter];
-    return dims.flatMap((d) => cats[d].skills.map((s) => ({ id: s.id, code: s.code, name: s.name })));
-  }, [cycle, dimFilter]);
-  // Si la dimension change, on reset la compétence
-  useEffect(() => { setSkillFilter("all"); }, [dimFilter, classId]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -146,32 +127,6 @@ function DataDashboard() {
     eleves: students.filter((s) => s.level >= b.min && s.level <= b.max).length,
     color: b.color,
   })), [students]);
-
-  // LineChart : évolution temporelle, filtrée par dimension/compétence
-  const timelineData = useMemo(() => {
-    const records = situationHistory
-      .filter((r) => r.classId === classId)
-      .slice()
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    return records.map((r, i) => {
-      // Filtrage des entrées progressed selon dimension / compétence sélectionnée
-      const filteredProg = r.progressed.filter((p) => {
-        if (skillFilter !== "all") return p.skillId === skillFilter;
-        if (dimFilter !== "all") {
-          const meta = findSkillMeta(cycle, p.skillId);
-          return meta?.dimension === dimFilter;
-        }
-        return true;
-      });
-      return {
-        label: `S${i + 1} · ${new Date(r.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`,
-        // SOMME des étoiles validées (delta after - before) sur les entrées filtrées
-        etoiles: filteredProg.reduce((acc, p) => acc + Math.max(0, p.after - p.before), 0),
-        // NB.VAL d'élèves distincts ayant progressé sur ce périmètre
-        progresseurs: new Set(filteredProg.map((p) => p.studentId)).size,
-      };
-    });
-  }, [situationHistory, classId, dimFilter, skillFilter, cycle]);
 
   // Helpers d'affichage
   const levelBadgeClass = (lvl: number) => {
@@ -290,7 +245,7 @@ function DataDashboard() {
         </section>
 
         {/* Graphiques */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="grid grid-cols-1 gap-6">
           <div className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop p-5">
             <h3 className="font-display text-lg tracking-wide mb-1">Répartition par Biome</h3>
             <p className="text-xs text-ink-soft font-semibold mb-4">NB.SI(niveau ∈ [min, max]) pour chaque palier</p>
@@ -307,48 +262,13 @@ function DataDashboard() {
             </ResponsiveContainer>
           </div>
 
-          <div className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop p-5">
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <h3 className="font-display text-lg tracking-wide flex-1">Suivi d'apprentissage</h3>
-              {/* Filtre Dimension */}
-              <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                Dim.
-                <select value={dimFilter} onChange={(e) => setDimFilter(e.target.value as "all" | DimensionKey)}
-                  className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px]">
-                  {DIM_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                </select>
-              </label>
-              {/* Filtre Compétence */}
-              <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                Compét.
-                <select value={skillFilter} onChange={(e) => setSkillFilter(e.target.value)}
-                  className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px] max-w-[180px]">
-                  <option value="all">Toutes</option>
-                  {skillOptions.map((s) => (<option key={s.id} value={s.id}>{s.code} · {s.name.slice(0, 28)}{s.name.length > 28 ? "…" : ""}</option>))}
-                </select>
-              </label>
-            </div>
-            <p className="text-xs text-ink-soft font-semibold mb-4">
-              SOMME(étoiles validées) & NB(élèves ayant progressé) — recalcul en temps réel sur le périmètre filtré
-            </p>
-            {timelineData.length === 0 ? (
-              <div className="h-[260px] grid place-items-center text-ink-soft font-semibold text-sm">
-                Aucune situation enregistrée pour ce périmètre.
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={timelineData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.2)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fontWeight: 700 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: "oklch(0.18 0.02 240)", border: "3px solid oklch(0.1 0 0)", borderRadius: 12, fontWeight: 700 }} labelStyle={{ color: "oklch(0.95 0 0)" }} />
-                  <Legend wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
-                  <Line type="monotone" dataKey="etoiles" name="Étoiles validées" stroke="oklch(0.82 0.18 95)" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="progresseurs" name="Élèves progressés" stroke="oklch(0.65 0.18 240)" strokeWidth={3} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+          {/* Explorateur de données dynamique — remplace l'ancien "Suivi d'apprentissage" */}
+          <AdvancedChartExplorer
+            students={students}
+            cycle={cycle}
+            classId={classId}
+            situationHistory={situationHistory}
+          />
         </section>
 
         {/* Database Manager — sauvegarde / restauration JSON */}
