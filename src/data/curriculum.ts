@@ -4,26 +4,32 @@
 export const MAX_LEVEL = 22;
 
 export type Cycle = "cycle3" | "cycle4";
-export type DimensionKey = "moteur" | "methodo" | "social";
+// Cycle 4 garde l'ancien découpage (moteur/methodo/social).
+// Cycle 3 introduit 5 "Secteurs d'activité" : technique, deplacement, tactique, methodo, social.
+export type DimensionKey =
+  | "moteur" | "methodo" | "social"
+  | "technique" | "deplacement" | "tactique";
 
 export interface Skill {
   id: string;
   code: string;
   name: string;
-  levels: string[]; // 5 paliers (0..4 then star=5 mastery)
+  // 4 paliers (cycle3) ou 5 paliers (cycle4).
+  levels: string[];
 }
 
 export interface Dimension {
   label: string;
-  iconName: "Activity" | "Brain" | "Users";
-  colorVar: string; // CSS var token for hsl
+  iconName: "Activity" | "Brain" | "Users" | "Target" | "Move" | "Crosshair";
+  colorVar: string;
   skills: Skill[];
 }
 
 export interface CurriculumCycle {
   title: string;
   field: string;
-  categories: Record<DimensionKey, Dimension>;
+  // Record<string> car cycle3 et cycle4 n'ont pas les mêmes clés de secteurs/dimensions.
+  categories: Record<string, Dimension>;
 }
 
 export const CLASSES_CONFIG: { id: string; name: string; cycle: Cycle; emoji: string }[] = [
