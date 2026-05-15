@@ -317,9 +317,9 @@ const StudentProfile = () => {
                 <div className="p-4 space-y-3 flex-1">
                   {cat.skills.map((skill) => {
                     const stars = student.skillStates[skill.id] || 0;
-                    const currentLabel = stars > 0 ? skill.levels[Math.min(4, stars - 1)] : null;
-                    const nextLabel = stars < 5 ? skill.levels[stars] : null;
-                    const isMax = stars >= 5;
+                    const currentLabel = stars > 0 ? skill.levels[Math.min(skill.levels.length - 1, stars - 1)] : null;
+                    const nextLabel = stars < maxStars ? skill.levels[Math.min(skill.levels.length - 1, stars)] : null;
+                    const isMax = stars >= maxStars;
                     const burst = burstKeys[skill.id] || 0;
                     const flagged = !!difficultyBySkill[skill.id];
                     return (
@@ -351,12 +351,13 @@ const StudentProfile = () => {
                         <div className="flex items-center justify-between gap-2 mb-3">
                           <StarMeter
                             value={stars}
+                            max={maxStars}
                             burstKey={burst}
                             onIncrement={() => handleBump(skill.id, "up")}
                             onDecrement={() => handleBump(skill.id, "down")}
                           />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                            Palier {stars} / 5
+                            Palier {stars} / {maxStars}
                           </span>
                         </div>
 
