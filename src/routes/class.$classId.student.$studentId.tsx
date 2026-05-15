@@ -260,7 +260,7 @@ const StudentProfile = () => {
                   Difficultés repérées · {student.difficulties.length}
                 </h2>
                 <p className="text-xs font-semibold text-ink-soft">
-                  Compétences sur lesquelles {student.name} stagne actuellement.
+                  {vocab.skillPlural} sur {vocab.skillPlural === "Contenus" ? "lesquels" : "lesquelles"} {student.name} stagne actuellement.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {student.difficulties.map((d) => {
