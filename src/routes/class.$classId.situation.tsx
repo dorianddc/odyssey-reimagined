@@ -348,7 +348,7 @@ function SituationMode() {
 
                   {/* dots */}
                   <div className="flex items-center gap-0.5 justify-center">
-                    {Array.from({ length: MAX_SKILL_STARS }).map((_, i) => (
+                    {Array.from({ length: maxStars }).map((_, i) => (
                       <span
                         key={i}
                         className={cn(
@@ -370,7 +370,7 @@ function SituationMode() {
                     </button>
                     <button
                       onClick={() => { bumpSkill(classId, s.id, activeSkill.id, "up"); setPulseKey((k) => k + 1); }}
-                      disabled={stars >= MAX_SKILL_STARS}
+                      disabled={stars >= maxStars}
                       className="flex-[1.4] h-9 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none transition-all grid place-items-center disabled:opacity-40"
                       aria-label="Augmenter"
                     >
