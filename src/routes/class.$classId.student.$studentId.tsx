@@ -309,7 +309,7 @@ const StudentProfile = () => {
                   <div className="flex-1">
                     <h2 className="font-display text-xl tracking-wide leading-none">{cat.label}</h2>
                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-90">
-                      {cat.skills.length} compétence{cat.skills.length > 1 ? "s" : ""}
+                      {cat.skills.length} {vocab.skill.toLowerCase()}{cat.skills.length > 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
