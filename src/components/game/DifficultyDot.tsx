@@ -3,6 +3,9 @@ import type { Difficulty } from "@/data/curriculum";
 
 const DIM_BG: Record<Difficulty["dimension"], string> = {
   moteur: "bg-[oklch(0.65_0.22_25)] text-white",
+  technique: "bg-[oklch(0.65_0.22_25)] text-white",
+  deplacement: "bg-[oklch(0.65_0.22_25)] text-white",
+  tactique: "bg-[oklch(0.72_0.20_45)] text-white",
   methodo: "bg-[oklch(0.82_0.18_115)] text-ink",
   social: "bg-[oklch(0.65_0.18_240)] text-white",
 };
