@@ -73,6 +73,8 @@ function SituationMode() {
   const students = studentsByClass[classId] || [];
   const cycle = cls?.cycle;
   const categories = cycle ? CURRICULUM[cycle].categories : null;
+  const maxStars = cycle ? getMaxStarsForCycle(cycle) : 5;
+  const vocab = cycle ? getCycleVocab(cycle) : getCycleVocab("cycle4");
 
   const allSkills = useMemo(() => {
     if (!categories) return [];
