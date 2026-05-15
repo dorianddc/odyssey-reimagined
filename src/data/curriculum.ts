@@ -338,12 +338,28 @@ export const dimensionColor = (d: DimensionKey): { bg: string; text: string; lab
   switch (d) {
     case "moteur":
       return { bg: "bg-[oklch(0.65_0.22_25)]", text: "text-white", label: "Moteur" };
+    case "technique":
+      return { bg: "bg-[oklch(0.65_0.22_25)]", text: "text-white", label: "Technique" };
+    case "deplacement":
+      return { bg: "bg-[oklch(0.65_0.22_25)]", text: "text-white", label: "Déplacement" };
+    case "tactique":
+      return { bg: "bg-[oklch(0.72_0.20_45)]", text: "text-white", label: "Tactique" };
     case "methodo":
       return { bg: "bg-[oklch(0.78_0.18_115)]", text: "text-ink", label: "Méthodo" };
     case "social":
       return { bg: "bg-[oklch(0.65_0.18_240)]", text: "text-white", label: "Social" };
   }
 };
+
+// Plafond d'étoiles par cycle : 4 paliers en 6ème (L1→L4), 5 en cycle 4.
+export const getMaxStarsForCycle = (cycle: Cycle): number => (cycle === "cycle3" ? 4 : 5);
+
+// Vocabulaire pédagogique : 6ème parle de "Contenu" et "Secteur",
+// le cycle 4 conserve "Compétence" et "Dimension".
+export const getCycleVocab = (cycle: Cycle) =>
+  cycle === "cycle3"
+    ? { skill: "Contenu", skillPlural: "Contenus", group: "Secteur", groupPlural: "Secteurs" }
+    : { skill: "Compétence", skillPlural: "Compétences", group: "Dimension", groupPlural: "Dimensions" };
 
 export const calculateLevelFromStars = (skillStates: Record<string, number>, cycle: Cycle): number => {
   const categories = CURRICULUM[cycle]?.categories;
