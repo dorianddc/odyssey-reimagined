@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/react-router";
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
-import { CURRICULUM, MAX_LEVEL, getRankBadge, type DimensionKey } from "@/data/curriculum";
+import { ArrowLeft, Activity, Brain, Users, Move, Crosshair, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
+import { CURRICULUM, MAX_LEVEL, getRankBadge, getMaxStarsForCycle, getCycleVocab, type DimensionKey } from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
@@ -20,14 +20,20 @@ const FOCUS_KEY = "odyssey_focus_student";
 
 const dimIcons: Record<DimensionKey, typeof Activity> = {
   moteur: Activity,
+  technique: Activity,
+  deplacement: Move,
+  tactique: Crosshair,
   methodo: Brain,
   social: Users,
 };
 
 const dimColorClass: Record<DimensionKey, string> = {
-  moteur: "bg-dim-motor text-white",
-  methodo: "bg-dim-method text-white",
-  social: "bg-dim-social text-white",
+  moteur:      "bg-dim-motor text-white",
+  technique:   "bg-dim-motor text-white",
+  deplacement: "bg-dim-motor text-white",
+  tactique:    "bg-dim-tactic text-white",
+  methodo:     "bg-dim-method text-white",
+  social:      "bg-dim-social text-white",
 };
 
 const StudentProfile = () => {
