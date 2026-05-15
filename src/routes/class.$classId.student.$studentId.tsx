@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/react-router";
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Activity, Brain, Users, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
-import { CURRICULUM, MAX_LEVEL, getRankBadge, type DimensionKey } from "@/data/curriculum";
+import { ArrowLeft, Activity, Brain, Users, Move, Crosshair, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
+import { CURRICULUM, MAX_LEVEL, getRankBadge, getMaxStarsForCycle, getCycleVocab, type DimensionKey } from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
@@ -20,14 +20,20 @@ const FOCUS_KEY = "odyssey_focus_student";
 
 const dimIcons: Record<DimensionKey, typeof Activity> = {
   moteur: Activity,
+  technique: Activity,
+  deplacement: Move,
+  tactique: Crosshair,
   methodo: Brain,
   social: Users,
 };
 
 const dimColorClass: Record<DimensionKey, string> = {
-  moteur: "bg-dim-motor text-white",
-  methodo: "bg-dim-method text-white",
-  social: "bg-dim-social text-white",
+  moteur:      "bg-dim-motor text-white",
+  technique:   "bg-dim-motor text-white",
+  deplacement: "bg-dim-motor text-white",
+  tactique:    "bg-dim-tactic text-white",
+  methodo:     "bg-dim-method text-white",
+  social:      "bg-dim-social text-white",
 };
 
 const StudentProfile = () => {
@@ -75,9 +81,11 @@ const StudentProfile = () => {
   }
 
   const categories = CURRICULUM[cycle].categories;
+  const maxStars = getMaxStarsForCycle(cycle);
+  const vocab = getCycleVocab(cycle);
   const totalSkills = Object.values(categories).reduce((acc, c) => acc + c.skills.length, 0);
   const totalStars = Object.values(student.skillStates).reduce((acc, n) => acc + n, 0);
-  const maxStars = totalSkills * 5;
+  const maxTotalStars = totalSkills * maxStars;
   // XP toward next level — derive a continuous "raw level" from the same formula
   // used by calculateLevelFromStars (avg*4 + 4 + 0.5 per mastered skill), then
   // measure how far we are between the current rounded level and the next.
@@ -223,7 +231,7 @@ const StudentProfile = () => {
 
               {/* xp stars */}
               <div className="mt-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink-soft">
-                <span>⭐ {totalStars} / {maxStars} étoiles</span>
+                <span>⭐ {totalStars} / {maxTotalStars} étoiles</span>
                 <span className="text-ink/30">·</span>
                 <span>XP {xpPct}%</span>
               </div>
@@ -252,7 +260,7 @@ const StudentProfile = () => {
                   Difficultés repérées · {student.difficulties.length}
                 </h2>
                 <p className="text-xs font-semibold text-ink-soft">
-                  Compétences sur lesquelles {student.name} stagne actuellement.
+                  {vocab.skillPlural} sur {vocab.skillPlural === "Contenus" ? "lesquels" : "lesquelles"} {student.name} stagne actuellement.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {student.difficulties.map((d) => {
@@ -301,7 +309,7 @@ const StudentProfile = () => {
                   <div className="flex-1">
                     <h2 className="font-display text-xl tracking-wide leading-none">{cat.label}</h2>
                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-90">
-                      {cat.skills.length} compétence{cat.skills.length > 1 ? "s" : ""}
+                      {cat.skills.length} {vocab.skill.toLowerCase()}{cat.skills.length > 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
@@ -309,9 +317,9 @@ const StudentProfile = () => {
                 <div className="p-4 space-y-3 flex-1">
                   {cat.skills.map((skill) => {
                     const stars = student.skillStates[skill.id] || 0;
-                    const currentLabel = stars > 0 ? skill.levels[Math.min(4, stars - 1)] : null;
-                    const nextLabel = stars < 5 ? skill.levels[stars] : null;
-                    const isMax = stars >= 5;
+                    const currentLabel = stars > 0 ? skill.levels[Math.min(skill.levels.length - 1, stars - 1)] : null;
+                    const nextLabel = stars < maxStars ? skill.levels[Math.min(skill.levels.length - 1, stars)] : null;
+                    const isMax = stars >= maxStars;
                     const burst = burstKeys[skill.id] || 0;
                     const flagged = !!difficultyBySkill[skill.id];
                     return (
@@ -343,12 +351,13 @@ const StudentProfile = () => {
                         <div className="flex items-center justify-between gap-2 mb-3">
                           <StarMeter
                             value={stars}
+                            max={maxStars}
                             burstKey={burst}
                             onIncrement={() => handleBump(skill.id, "up")}
                             onDecrement={() => handleBump(skill.id, "down")}
                           />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-                            Palier {stars} / 5
+                            Palier {stars} / {maxStars}
                           </span>
                         </div>
 

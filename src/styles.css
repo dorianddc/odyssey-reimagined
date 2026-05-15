@@ -65,6 +65,7 @@
   --color-dim-motor: hsl(var(--dim-motor));
   --color-dim-method: hsl(var(--dim-method));
   --color-dim-social: hsl(var(--dim-social));
+  --color-dim-tactic: hsl(var(--dim-tactic));
 
   /* Star rarity */
   --color-star-bronze: hsl(var(--star-bronze));
@@ -143,6 +144,7 @@
   --dim-motor: 0 84% 67%;
   --dim-method: 217 91% 60%;
   --dim-social: 158 64% 52%;
+  --dim-tactic: 24 95% 53%;
 
   /* Stars */
   --star-bronze: 25 80% 55%;

@@ -3,12 +3,13 @@ import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StarMeterProps {
-  value: number; // 0..5
+  value: number; // 0..max
   onIncrement?: () => void;
   onDecrement?: () => void;
   size?: number;
   interactive?: boolean;
   burstKey?: number; // change to trigger burst animation
+  max?: number; // 5 par défaut (cycle 4) ; 4 pour le cycle 3 (6ème)
 }
 
 export const StarMeter = ({
@@ -18,10 +19,11 @@ export const StarMeter = ({
   size = 22,
   interactive = true,
   burstKey = 0,
+  max = 5,
 }: StarMeterProps) => {
   return (
     <div className="inline-flex items-center gap-1">
-      {Array.from({ length: 5 }).map((_, i) => {
+      {Array.from({ length: max }).map((_, i) => {
         const filled = i < value;
         const isLastNew = interactive && i === value - 1;
         return (

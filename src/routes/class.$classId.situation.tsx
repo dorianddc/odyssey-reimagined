@@ -4,13 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Play, CheckCircle2, AlertTriangle, TrendingUp, Flag, Plus, Minus,
-  Activity, Brain, Users, SortAsc, SortDesc, Trophy, ChevronRight,
+  Activity, Brain, Users, Move, Crosshair, SortAsc, SortDesc, Trophy, ChevronRight,
 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
-import { CURRICULUM, type DimensionKey, MAX_SKILL_STARS, findSkillMeta, type Student } from "@/data/curriculum";
+import { CURRICULUM, type DimensionKey, findSkillMeta, getMaxStarsForCycle, getCycleVocab, type Student } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/class/$classId/situation")({
@@ -21,15 +21,21 @@ type Phase = "setup" | "live" | "debrief";
 type SortMode = "name-asc" | "name-desc" | "level-asc" | "level-desc";
 type EvalFilter = "all" | "evaluated" | "pending";
 
-const DIM_META: Record<DimensionKey, { label: string; iconName: "Activity" | "Brain" | "Users"; color: string }> = {
-  moteur: { label: "Motrice", iconName: "Activity", color: "bg-[oklch(0.65_0.22_25)] text-white" },
-  methodo: { label: "Méthodo", iconName: "Brain", color: "bg-[oklch(0.82_0.18_115)] text-ink" },
-  social: { label: "Sociale", iconName: "Users", color: "bg-[oklch(0.65_0.18_240)] text-white" },
+type DimIconName = "Activity" | "Brain" | "Users" | "Move" | "Crosshair";
+const DIM_META: Record<DimensionKey, { label: string; iconName: DimIconName; color: string }> = {
+  moteur:      { label: "Motrice",     iconName: "Activity",  color: "bg-[oklch(0.65_0.22_25)] text-white" },
+  technique:   { label: "Technique",   iconName: "Activity",  color: "bg-[oklch(0.65_0.22_25)] text-white" },
+  deplacement: { label: "Déplacement", iconName: "Move",      color: "bg-[oklch(0.65_0.22_25)] text-white" },
+  tactique:    { label: "Tactique",    iconName: "Crosshair", color: "bg-[oklch(0.72_0.20_45)] text-white" },
+  methodo:     { label: "Méthodo",     iconName: "Brain",     color: "bg-[oklch(0.82_0.18_115)] text-ink" },
+  social:      { label: "Sociale",     iconName: "Users",     color: "bg-[oklch(0.65_0.18_240)] text-white" },
 };
 
-function DimIcon({ name, size = 16 }: { name: "Activity" | "Brain" | "Users"; size?: number }) {
+function DimIcon({ name, size = 16 }: { name: DimIconName; size?: number }) {
   if (name === "Activity") return <Activity size={size} strokeWidth={3} />;
   if (name === "Brain") return <Brain size={size} strokeWidth={3} />;
+  if (name === "Move") return <Move size={size} strokeWidth={3} />;
+  if (name === "Crosshair") return <Crosshair size={size} strokeWidth={3} />;
   return <Users size={size} strokeWidth={3} />;
 }
 
@@ -67,6 +73,8 @@ function SituationMode() {
   const students = studentsByClass[classId] || [];
   const cycle = cls?.cycle;
   const categories = cycle ? CURRICULUM[cycle].categories : null;
+  const maxStars = cycle ? getMaxStarsForCycle(cycle) : 5;
+  const vocab = cycle ? getCycleVocab(cycle) : getCycleVocab("cycle4");
 
   const allSkills = useMemo(() => {
     if (!categories) return [];
@@ -169,9 +177,9 @@ function SituationMode() {
       {phase === "setup" && (
         <section className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-6">
           <div className="pop-card p-6">
-            <h2 className="font-display text-2xl mb-1">Compétences travaillées</h2>
+            <h2 className="font-display text-2xl mb-1">{vocab.skillPlural} travaillé{vocab.skillPlural.endsWith("s") ? "s" : ""}</h2>
             <p className="text-sm font-semibold text-ink-soft mb-5">
-              Sélectionne les compétences ciblées par la situation. Tu pourras les évaluer en direct, élève par élève.
+              Sélectionne {vocab.skill === "Contenu" ? "les contenus" : "les compétences"} ciblé{vocab.skill === "Contenu" ? "s" : "es"} par la situation. Tu pourras les évaluer en direct, élève par élève.
             </p>
 
             {(Object.keys(categories) as DimensionKey[]).map((dim) => {
@@ -182,7 +190,7 @@ function SituationMode() {
                     <span className={cn("inline-grid place-items-center w-7 h-7 rounded-full border-[2.5px] border-ink", meta.color)}>
                       <DimIcon name={meta.iconName} size={14} />
                     </span>
-                    <h3 className="font-display tracking-wide text-sm uppercase">Dimension {meta.label}</h3>
+                    <h3 className="font-display tracking-wide text-sm uppercase">{vocab.group} {meta.label}</h3>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
                     {categories[dim].skills.map((sk) => {
@@ -250,7 +258,7 @@ function SituationMode() {
 
           {/* Heading + criteria */}
           <div className="pop-card p-4 mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">Compétence évaluée</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">{vocab.skill} évalué{vocab.skill === "Contenu" ? "" : "e"}</span>
             <h2 className="font-display text-xl leading-snug mb-3">{activeSkill.code} — {activeSkill.name}</h2>
 
             <div className="border-t-2 border-dashed border-ink/15 pt-3">
@@ -340,7 +348,7 @@ function SituationMode() {
 
                   {/* dots */}
                   <div className="flex items-center gap-0.5 justify-center">
-                    {Array.from({ length: MAX_SKILL_STARS }).map((_, i) => (
+                    {Array.from({ length: maxStars }).map((_, i) => (
                       <span
                         key={i}
                         className={cn(
@@ -362,7 +370,7 @@ function SituationMode() {
                     </button>
                     <button
                       onClick={() => { bumpSkill(classId, s.id, activeSkill.id, "up"); setPulseKey((k) => k + 1); }}
-                      disabled={stars >= MAX_SKILL_STARS}
+                      disabled={stars >= maxStars}
                       className="flex-[1.4] h-9 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none transition-all grid place-items-center disabled:opacity-40"
                       aria-label="Augmenter"
                     >

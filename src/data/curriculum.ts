@@ -4,26 +4,32 @@
 export const MAX_LEVEL = 22;
 
 export type Cycle = "cycle3" | "cycle4";
-export type DimensionKey = "moteur" | "methodo" | "social";
+// Cycle 4 garde l'ancien découpage (moteur/methodo/social).
+// Cycle 3 introduit 5 "Secteurs d'activité" : technique, deplacement, tactique, methodo, social.
+export type DimensionKey =
+  | "moteur" | "methodo" | "social"
+  | "technique" | "deplacement" | "tactique";
 
 export interface Skill {
   id: string;
   code: string;
   name: string;
-  levels: string[]; // 5 paliers (0..4 then star=5 mastery)
+  // 4 paliers (cycle3) ou 5 paliers (cycle4).
+  levels: string[];
 }
 
 export interface Dimension {
   label: string;
-  iconName: "Activity" | "Brain" | "Users";
-  colorVar: string; // CSS var token for hsl
+  iconName: "Activity" | "Brain" | "Users" | "Target" | "Move" | "Crosshair";
+  colorVar: string;
   skills: Skill[];
 }
 
 export interface CurriculumCycle {
   title: string;
   field: string;
-  categories: Record<DimensionKey, Dimension>;
+  // Record<string> car cycle3 et cycle4 n'ont pas les mêmes clés de secteurs/dimensions.
+  categories: Record<string, Dimension>;
 }
 
 export const CLASSES_CONFIG: { id: string; name: string; cycle: Cycle; emoji: string }[] = [
@@ -37,115 +43,136 @@ export const CLASSES_CONFIG: { id: string; name: string; cycle: Cycle; emoji: st
   { id: "3B", name: "3ème B", cycle: "cycle4", emoji: "💎" },
 ];
 
-// Référentiel institutionnel officiel — Badminton EPS
-// Cycle 3 (6ème) : 7 compétences réparties sur 3 dimensions
-// Cycle 4 (5e/4e/3e) : 6 compétences réparties sur 3 dimensions
+// ─────────────────────────────────────────────────────────────────────────────
+// CYCLE 3 (6ème) — Approche par "Contenus d'Apprentissage" (CA) regroupés
+// par "Secteur d'activité". 5 secteurs, 8 contenus, 4 paliers d'acquisition
+// (L1 Insuffisant → L4 Très bonne). Le mot "Compétence" est volontairement
+// abandonné en 6ème ; on parle de "Secteur" et de "Contenu".
+// ─────────────────────────────────────────────────────────────────────────────
 export const CURRICULUM: Record<Cycle, CurriculumCycle> = {
   cycle3: {
     title: "Cycle 3 (6ème)",
-    field: "Conduire et maîtriser un affrontement collectif ou interindividuel",
+    field: "Contenus d'apprentissage par secteur d'activité",
     categories: {
-      moteur: {
-        label: "Dimension Motrice",
+      technique: {
+        label: "Secteur Technique",
         iconName: "Activity",
-        colorVar: "var(--dim-motor)",
+        colorVar: "var(--dim-motor)", // rouge #ef4444
         skills: [
           {
-            id: "c3_c1",
-            code: "C1",
-            name: "Rechercher le gain de l'affrontement par des choix tactiques simples",
+            id: "c3_tech_service",
+            code: "CA1",
+            name: "Mise en jeu (Service)",
             levels: [
-              "Frappe subie, renvoi réflexe vers l'avant.",
-              "Envoie le volant volontairement chez l'adversaire.",
-              "Vise les espaces libres pour marquer le point.",
-              "Provoque la rupture par des trajectoires placées.",
-              "Utilise une grande variété de frappes pour déborder l'adversaire.",
+              "Service non réglementaire ou aléatoire.",
+              "Service réglementaire mais trajectoire prévisible.",
+              "Service précis, zone visée atteinte régulièrement.",
+              "Service varié (court/long) avec intention de gêner l'adversaire.",
             ],
           },
           {
-            id: "c3_c2",
-            code: "C2",
-            name: "Adapter son jeu et ses actions aux adversaires et à ses partenaires",
+            id: "c3_tech_degage",
+            code: "CA2",
+            name: "Le Dégagé (Frappe haute)",
             levels: [
-              "Action non orientée vers le camp adverse.",
-              "Identifie la cible et envoie le volant dedans.",
-              "Oriente ses frappes vers les coins du terrain.",
-              "Place le volant en fonction du placement adverse.",
-              "Fixe l'adversaire avant de changer de cible.",
+              "Frappe \"poussée\", volant reste au centre du terrain.",
+              "Frappe en cloche, commence à chercher la profondeur.",
+              "Dégagé long maîtrisé, fait reculer l'adversaire en zone arrière.",
+              "Dégagé puissant et tendu, précis en zone fond de court.",
             ],
           },
           {
-            id: "c3_c3",
-            code: "C3",
-            name: "Coordonner des actions motrices simples",
+            id: "c3_tech_basse",
+            code: "CA3",
+            name: "Frappe basse (Amorti / Défense)",
             levels: [
-              "Gestes désordonnés, frappe à l'arrêt sans équilibre.",
-              "Coordonne l'action bras/jambes lors de la frappe.",
-              "Enchaîne frappe et début de replacement central.",
-              "Équilibre parfait en fente et replacement rapide.",
-              "Fluidité totale et jeu de jambes \"shadow\" expert.",
+              "Ne parvient pas à relever les volants bas.",
+              "Renvoi \"sauvetage\" sans contrôle de trajectoire.",
+              "Amorti simple réussi, volant passe proche du filet.",
+              "Amorti précis et masqué, intention de rupture immédiate.",
+            ],
+          },
+        ],
+      },
+      deplacement: {
+        label: "Secteur Déplacement",
+        iconName: "Move",
+        colorVar: "var(--dim-motor)", // rouge #ef4444
+        skills: [
+          {
+            id: "c3_dep_repli",
+            code: "CA4",
+            name: "Le Repli (Replacement)",
+            levels: [
+              "Jeu statique, attend le volant sans bouger.",
+              "Se déplace vers l'avant mais oublie le fond de court.",
+              "Déplacement avant/arrière coordonné, revient au centre.",
+              "Replacement systématique et dynamique après chaque frappe.",
+            ],
+          },
+        ],
+      },
+      tactique: {
+        label: "Secteur Tactique",
+        iconName: "Crosshair",
+        colorVar: "var(--dim-tactic)", // orange #f97316
+        skills: [
+          {
+            id: "c3_tac_espace",
+            code: "CA5",
+            name: "Exploitation de l'espace",
+            levels: [
+              "Renvoie \"avec\" l'adversaire (sur lui).",
+              "Essaie de renvoyer loin du joueur adverse sans succès constant.",
+              "Cherche activement l'espace libre (là où l'adversaire n'est pas).",
+              "Combine frappes longues et courtes pour créer la rupture.",
             ],
           },
         ],
       },
       methodo: {
-        label: "Dimension Méthodologique",
+        label: "Secteur Méthodologique",
         iconName: "Brain",
-        colorVar: "var(--dim-method)",
+        colorVar: "var(--dim-method)", // bleu #3b82f6
         skills: [
           {
-            id: "c3_c4",
-            code: "C4",
-            name: "Se reconnaître attaquant / défenseur",
+            id: "c3_met_invest",
+            code: "CA6",
+            name: "Investissement & Concentration",
             levels: [
-              "Ne sait pas s'il est en difficulté ou en position de force.",
-              "Se reconnaît attaquant uniquement sur un volant très haut et lent.",
-              "Identifie son statut dès que l'adversaire frappe.",
-              "Adapte sa posture (raquette haute en attaque, posture basse en défense).",
-              "Passe instantanément de la défense à l'attaque sur un bon dégagement.",
-            ],
-          },
-          {
-            id: "c3_c5",
-            code: "C5",
-            name: "Coopérer pour attaquer et défendre",
-            levels: [
-              "Joue seul même en double, gêne son partenaire.",
-              "Se répartit le terrain de manière figée.",
-              "Communique verbalement pour éviter les collisions.",
-              "Se place de manière complémentaire (avant/arrière) selon la situation.",
-              "Couvre spontanément les espaces laissés par un partenaire en difficulté.",
+              "Distrait, ne respecte pas les consignes ou abandonne vite.",
+              "Applique les consignes avec aide, effort discontinu.",
+              "Concentré, persévère dans l'effort sur toute la séance.",
+              "Autonome, cherche activement à progresser et écoute les feedbacks.",
             ],
           },
         ],
       },
       social: {
-        label: "Dimension Sociale",
+        label: "Secteur Social",
         iconName: "Users",
-        colorVar: "var(--dim-social)",
+        colorVar: "var(--dim-social)", // vert #22c55e
         skills: [
           {
-            id: "c3_c6",
-            code: "C6",
-            name: "Accepter de tenir des rôles simples d'arbitre et d'observateur",
+            id: "c3_soc_arbitrage",
+            code: "CA7",
+            name: "L'Arbitrage",
             levels: [
-              "Refuse d'arbitrer ou n'est pas attentif.",
-              "Annonce le score mais fait des erreurs de procédure.",
-              "Juge les lignes correctement et annonce le score sans erreur.",
-              "Utilise un outil d'observation simple de manière fiable.",
-              "Arbitre avec autorité bienveillante et aide à faire le bilan.",
+              "Ne connaît pas les règles, spectateur passif.",
+              "Compte les points dans sa tête, fait des erreurs de score.",
+              "Annonce le score à voix haute et juge les fautes avec justesse.",
+              "Explique les fautes, gère les litiges et annonce le serveur.",
             ],
           },
           {
-            id: "c3_c7",
-            code: "C7",
-            name: "S'informer pour agir",
+            id: "c3_soc_observation",
+            code: "CA8",
+            name: "L'Observation",
             levels: [
-              "Ne regarde que le volant ou sa raquette.",
-              "Prend le temps de regarder l'adversaire avant de servir.",
-              "Prend l'information sur le placement adverse pendant que le volant vole.",
-              "Observe le comportement d'un joueur depuis la touche.",
-              "Croise les infos (score, temps, adversaire) pour ajuster son jeu.",
+              "Remplissage de fiche inexistant ou bâclé.",
+              "Remplissage approximatif avec de nombreuses erreurs.",
+              "Fiche/Tablette remplie correctement de façon autonome.",
+              "Analyse les données recueillies pour aider son partenaire.",
             ],
           },
         ],
@@ -311,12 +338,28 @@ export const dimensionColor = (d: DimensionKey): { bg: string; text: string; lab
   switch (d) {
     case "moteur":
       return { bg: "bg-[oklch(0.65_0.22_25)]", text: "text-white", label: "Moteur" };
+    case "technique":
+      return { bg: "bg-[oklch(0.65_0.22_25)]", text: "text-white", label: "Technique" };
+    case "deplacement":
+      return { bg: "bg-[oklch(0.65_0.22_25)]", text: "text-white", label: "Déplacement" };
+    case "tactique":
+      return { bg: "bg-[oklch(0.72_0.20_45)]", text: "text-white", label: "Tactique" };
     case "methodo":
       return { bg: "bg-[oklch(0.78_0.18_115)]", text: "text-ink", label: "Méthodo" };
     case "social":
       return { bg: "bg-[oklch(0.65_0.18_240)]", text: "text-white", label: "Social" };
   }
 };
+
+// Plafond d'étoiles par cycle : 4 paliers en 6ème (L1→L4), 5 en cycle 4.
+export const getMaxStarsForCycle = (cycle: Cycle): number => (cycle === "cycle3" ? 4 : 5);
+
+// Vocabulaire pédagogique : 6ème parle de "Contenu" et "Secteur",
+// le cycle 4 conserve "Compétence" et "Dimension".
+export const getCycleVocab = (cycle: Cycle) =>
+  cycle === "cycle3"
+    ? { skill: "Contenu", skillPlural: "Contenus", group: "Secteur", groupPlural: "Secteurs" }
+    : { skill: "Compétence", skillPlural: "Compétences", group: "Dimension", groupPlural: "Dimensions" };
 
 export const calculateLevelFromStars = (skillStates: Record<string, number>, cycle: Cycle): number => {
   const categories = CURRICULUM[cycle]?.categories;
