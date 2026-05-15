@@ -81,9 +81,11 @@ const StudentProfile = () => {
   }
 
   const categories = CURRICULUM[cycle].categories;
+  const maxStars = getMaxStarsForCycle(cycle);
+  const vocab = getCycleVocab(cycle);
   const totalSkills = Object.values(categories).reduce((acc, c) => acc + c.skills.length, 0);
   const totalStars = Object.values(student.skillStates).reduce((acc, n) => acc + n, 0);
-  const maxStars = totalSkills * 5;
+  const maxTotalStars = totalSkills * maxStars;
   // XP toward next level — derive a continuous "raw level" from the same formula
   // used by calculateLevelFromStars (avg*4 + 4 + 0.5 per mastered skill), then
   // measure how far we are between the current rounded level and the next.
