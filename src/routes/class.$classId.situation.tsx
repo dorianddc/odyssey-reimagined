@@ -4,13 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Play, CheckCircle2, AlertTriangle, TrendingUp, Flag, Plus, Minus,
-  Activity, Brain, Users, SortAsc, SortDesc, Trophy, ChevronRight,
+  Activity, Brain, Users, Move, Crosshair, SortAsc, SortDesc, Trophy, ChevronRight,
 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
-import { CURRICULUM, type DimensionKey, MAX_SKILL_STARS, findSkillMeta, type Student } from "@/data/curriculum";
+import { CURRICULUM, type DimensionKey, findSkillMeta, getMaxStarsForCycle, getCycleVocab, type Student } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/class/$classId/situation")({
@@ -21,15 +21,21 @@ type Phase = "setup" | "live" | "debrief";
 type SortMode = "name-asc" | "name-desc" | "level-asc" | "level-desc";
 type EvalFilter = "all" | "evaluated" | "pending";
 
-const DIM_META: Record<DimensionKey, { label: string; iconName: "Activity" | "Brain" | "Users"; color: string }> = {
-  moteur: { label: "Motrice", iconName: "Activity", color: "bg-[oklch(0.65_0.22_25)] text-white" },
-  methodo: { label: "Méthodo", iconName: "Brain", color: "bg-[oklch(0.82_0.18_115)] text-ink" },
-  social: { label: "Sociale", iconName: "Users", color: "bg-[oklch(0.65_0.18_240)] text-white" },
+type DimIconName = "Activity" | "Brain" | "Users" | "Move" | "Crosshair";
+const DIM_META: Record<DimensionKey, { label: string; iconName: DimIconName; color: string }> = {
+  moteur:      { label: "Motrice",     iconName: "Activity",  color: "bg-[oklch(0.65_0.22_25)] text-white" },
+  technique:   { label: "Technique",   iconName: "Activity",  color: "bg-[oklch(0.65_0.22_25)] text-white" },
+  deplacement: { label: "Déplacement", iconName: "Move",      color: "bg-[oklch(0.65_0.22_25)] text-white" },
+  tactique:    { label: "Tactique",    iconName: "Crosshair", color: "bg-[oklch(0.72_0.20_45)] text-white" },
+  methodo:     { label: "Méthodo",     iconName: "Brain",     color: "bg-[oklch(0.82_0.18_115)] text-ink" },
+  social:      { label: "Sociale",     iconName: "Users",     color: "bg-[oklch(0.65_0.18_240)] text-white" },
 };
 
-function DimIcon({ name, size = 16 }: { name: "Activity" | "Brain" | "Users"; size?: number }) {
+function DimIcon({ name, size = 16 }: { name: DimIconName; size?: number }) {
   if (name === "Activity") return <Activity size={size} strokeWidth={3} />;
   if (name === "Brain") return <Brain size={size} strokeWidth={3} />;
+  if (name === "Move") return <Move size={size} strokeWidth={3} />;
+  if (name === "Crosshair") return <Crosshair size={size} strokeWidth={3} />;
   return <Users size={size} strokeWidth={3} />;
 }
 
