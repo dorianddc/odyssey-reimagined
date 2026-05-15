@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RANK_TIERS, type DimensionKey, type Student } from "@/data/curriculum";
-import { Activity, Brain, Users, BarChart3, AlertTriangle } from "lucide-react";
+import { Activity, Brain, Users, BarChart3, AlertTriangle, Move, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -15,9 +15,12 @@ interface Props {
 }
 
 const DIM_INFO: Record<DimensionKey, { label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number }>; cls: string }> = {
-  moteur: { label: "Motrice", icon: Activity, cls: "bg-[oklch(0.65_0.22_25)] text-white" },
-  methodo: { label: "Méthodo", icon: Brain, cls: "bg-[oklch(0.82_0.18_115)] text-ink" },
-  social: { label: "Sociale", icon: Users, cls: "bg-[oklch(0.65_0.18_240)] text-white" },
+  moteur:      { label: "Motrice",     icon: Activity,  cls: "bg-[oklch(0.65_0.22_25)] text-white" },
+  technique:   { label: "Technique",   icon: Activity,  cls: "bg-[oklch(0.65_0.22_25)] text-white" },
+  deplacement: { label: "Déplacement", icon: Move,      cls: "bg-[oklch(0.65_0.22_25)] text-white" },
+  tactique:    { label: "Tactique",    icon: Crosshair, cls: "bg-[oklch(0.72_0.20_45)] text-white" },
+  methodo:     { label: "Méthodo",     icon: Brain,     cls: "bg-[oklch(0.82_0.18_115)] text-ink" },
+  social:      { label: "Sociale",     icon: Users,     cls: "bg-[oklch(0.65_0.18_240)] text-white" },
 };
 
 export function ClassRecapModal({ open, onOpenChange, className, cycle, students }: Props) {
