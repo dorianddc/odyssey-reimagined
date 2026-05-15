@@ -177,9 +177,9 @@ function SituationMode() {
       {phase === "setup" && (
         <section className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-6">
           <div className="pop-card p-6">
-            <h2 className="font-display text-2xl mb-1">Compétences travaillées</h2>
+            <h2 className="font-display text-2xl mb-1">{vocab.skillPlural} travaillé{vocab.skillPlural.endsWith("s") ? "s" : ""}</h2>
             <p className="text-sm font-semibold text-ink-soft mb-5">
-              Sélectionne les compétences ciblées par la situation. Tu pourras les évaluer en direct, élève par élève.
+              Sélectionne {vocab.skill === "Contenu" ? "les contenus" : "les compétences"} ciblé{vocab.skill === "Contenu" ? "s" : "es"} par la situation. Tu pourras les évaluer en direct, élève par élève.
             </p>
 
             {(Object.keys(categories) as DimensionKey[]).map((dim) => {
@@ -190,7 +190,7 @@ function SituationMode() {
                     <span className={cn("inline-grid place-items-center w-7 h-7 rounded-full border-[2.5px] border-ink", meta.color)}>
                       <DimIcon name={meta.iconName} size={14} />
                     </span>
-                    <h3 className="font-display tracking-wide text-sm uppercase">Dimension {meta.label}</h3>
+                    <h3 className="font-display tracking-wide text-sm uppercase">{vocab.group} {meta.label}</h3>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-2">
                     {categories[dim].skills.map((sk) => {
