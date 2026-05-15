@@ -1,5 +1,5 @@
 // SVG Radar chart for student skill spectrum — Sport Pop style.
-import { CURRICULUM, type Cycle } from "@/data/curriculum";
+import { CURRICULUM, getMaxStarsForCycle, type Cycle } from "@/data/curriculum";
 
 interface FullSpectrumRadarProps {
   skillStates: Record<string, number>;
@@ -10,6 +10,7 @@ interface FullSpectrumRadarProps {
 export const FullSpectrumRadar = ({ skillStates, cycle, size = 320 }: FullSpectrumRadarProps) => {
   const tree = CURRICULUM[cycle]?.categories;
   if (!tree) return null;
+  const maxStars = getMaxStarsForCycle(cycle);
 
   const allSkills: { id: string; code: string; name: string; colorVar: string }[] = [];
   Object.values(tree).forEach((cat) => {
