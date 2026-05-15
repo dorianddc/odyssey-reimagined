@@ -56,8 +56,8 @@ export const FullSpectrumRadar = ({ skillStates, cycle, size = 320 }: FullSpectr
           </radialGradient>
         </defs>
 
-        {/* Concentric polygons - one per palier (5 levels) */}
-        {[0.2, 0.4, 0.6, 0.8, 1].map((r, idx) => (
+        {/* Concentric polygons - one per palier (cycle-aware) */}
+        {ringRatios.map((r, idx) => (
           <polygon
             key={r}
             points={allSkills
@@ -66,17 +66,17 @@ export const FullSpectrumRadar = ({ skillStates, cycle, size = 320 }: FullSpectr
                 return `${center + radius * r * Math.cos(angle)},${center + radius * r * Math.sin(angle)}`;
               })
               .join(" ")}
-            fill={idx === 4 ? "hsl(var(--surface-2))" : "transparent"}
+            fill={idx === lastIdx ? "hsl(var(--surface-2))" : "transparent"}
             stroke="hsl(var(--ink) / 0.18)"
-            strokeWidth={idx === 4 ? 3 : 1.5}
-            strokeDasharray={idx === 4 ? "0" : "0"}
+            strokeWidth={idx === lastIdx ? 3 : 1.5}
+            strokeDasharray="0"
           />
         ))}
 
-        {/* Tick marks on each axis: 5 paliers per axis */}
+        {/* Tick marks on each axis: one per palier */}
         {allSkills.map((_, i) => {
           const angle = i * angleStep - Math.PI / 2;
-          return [0.2, 0.4, 0.6, 0.8, 1].map((r, k) => {
+          return ringRatios.map((r, k) => {
             const cx = center + radius * r * Math.cos(angle);
             const cy = center + radius * r * Math.sin(angle);
             return (
@@ -84,7 +84,7 @@ export const FullSpectrumRadar = ({ skillStates, cycle, size = 320 }: FullSpectr
                 key={`${i}-${k}`}
                 cx={cx}
                 cy={cy}
-                r={k === 4 ? 3.5 : 2.5}
+                r={k === lastIdx ? 3.5 : 2.5}
                 fill="hsl(var(--surface))"
                 stroke="hsl(var(--ink))"
                 strokeWidth={1.5}
