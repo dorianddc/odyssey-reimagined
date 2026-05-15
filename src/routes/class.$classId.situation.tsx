@@ -258,7 +258,7 @@ function SituationMode() {
 
           {/* Heading + criteria */}
           <div className="pop-card p-4 mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">Compétence évaluée</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">{vocab.skill} évalué{vocab.skill === "Contenu" ? "" : "e"}</span>
             <h2 className="font-display text-xl leading-snug mb-3">{activeSkill.code} — {activeSkill.name}</h2>
 
             <div className="border-t-2 border-dashed border-ink/15 pt-3">
