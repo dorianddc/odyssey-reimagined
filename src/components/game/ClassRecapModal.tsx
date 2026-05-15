@@ -30,7 +30,7 @@ export function ClassRecapModal({ open, onOpenChange, className, cycle, students
       count: students.filter((s) => s.level >= t.range[0] && s.level <= t.range[1]).length,
     }));
     const withDifficulty = students.filter((s) => (s.difficulties || []).length > 0).length;
-    const dims: Record<DimensionKey, number> = { moteur: 0, methodo: 0, social: 0 };
+    const dims: Record<DimensionKey, number> = { moteur: 0, methodo: 0, social: 0, technique: 0, deplacement: 0, tactique: 0 };
     students.forEach((s) => {
       const set = new Set<DimensionKey>();
       (s.difficulties || []).forEach((d) => set.add(d.dimension));
