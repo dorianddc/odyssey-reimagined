@@ -36,11 +36,15 @@ const Y_OPTIONS: { value: YMetric; label: string; unit: string; short: string }[
 ];
 const DIM_LABEL: Record<DimensionKey, string> = {
   moteur: "Motrice", methodo: "Méthodologique", social: "Sociale",
+  technique: "Technique", deplacement: "Déplacement", tactique: "Tactique",
 };
 const DIM_COLOR: Record<DimensionKey, string> = {
-  moteur:  "oklch(0.65 0.22 25)",
-  methodo: "oklch(0.78 0.18 115)",
-  social:  "oklch(0.65 0.18 240)",
+  moteur:      "oklch(0.65 0.22 25)",
+  methodo:     "oklch(0.78 0.18 115)",
+  social:      "oklch(0.65 0.18 240)",
+  technique:   "oklch(0.65 0.22 25)",
+  deplacement: "oklch(0.65 0.22 25)",
+  tactique:    "oklch(0.72 0.20 45)",
 };
 const BIOMES: { key: string; min: number; max: number; color: string }[] = [
   { key: "Initiation", min: 1,  max: 6,  color: "oklch(0.72 0.16 60)"  },
