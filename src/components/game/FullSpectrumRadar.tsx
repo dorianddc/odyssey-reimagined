@@ -21,9 +21,13 @@ export const FullSpectrumRadar = ({ skillStates, cycle, size = 320 }: FullSpectr
   const center = size / 2;
   const radius = center - 56;
 
+  // Échelle 0..maxStars (5 paliers en cycle 4, 4 paliers en cycle 3).
+  const ringRatios = Array.from({ length: maxStars }, (_, i) => (i + 1) / maxStars);
+  const lastIdx = ringRatios.length - 1;
+
   const points = allSkills.map((s, i) => {
     const stars = skillStates[s.id] || 0;
-    const scale = stars / 5;
+    const scale = Math.min(1, stars / maxStars);
     const angle = i * angleStep - Math.PI / 2;
     return {
       x: center + radius * scale * Math.cos(angle),
