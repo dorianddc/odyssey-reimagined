@@ -231,7 +231,7 @@ const StudentProfile = () => {
 
               {/* xp stars */}
               <div className="mt-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink-soft">
-                <span>⭐ {totalStars} / {maxStars} étoiles</span>
+                <span>⭐ {totalStars} / {maxTotalStars} étoiles</span>
                 <span className="text-ink/30">·</span>
                 <span>XP {xpPct}%</span>
               </div>
