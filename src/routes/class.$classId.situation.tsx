@@ -175,47 +175,61 @@ function SituationMode() {
 
       {/* ============== SETUP ============== */}
       {phase === "setup" && (
-        <section className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-6">
-          <div className="pop-card p-6">
-            <h2 className="font-display text-2xl mb-1">{vocab.skillPlural} travaillé{vocab.skillPlural.endsWith("s") ? "s" : ""}</h2>
-            <p className="text-sm font-semibold text-ink-soft mb-5">
-              Sélectionne {vocab.skill === "Contenu" ? "les contenus" : "les compétences"} ciblé{vocab.skill === "Contenu" ? "s" : "es"} par la situation. Tu pourras les évaluer en direct, élève par élève.
-            </p>
+        <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 space-y-5">
+          <div className="pop-card p-5 md:p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+              <div>
+                <h2 className="font-display text-2xl leading-tight">{vocab.skillPlural} travaillé{vocab.skillPlural.endsWith("s") ? "s" : ""}</h2>
+                <p className="text-xs font-semibold text-ink-soft">
+                  Clique sur un chip pour le sélectionner. Couleurs = {vocab.groupPlural ?? "secteurs"}.
+                </p>
+              </div>
+              <span className="font-display text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-full bg-ink text-surface">
+                {selectedSkills.length} sélectionné{selectedSkills.length > 1 ? "s" : ""}
+              </span>
+            </div>
 
-            {(Object.keys(categories) as DimensionKey[]).map((dim) => {
-              const meta = DIM_META[dim];
-              return (
-                <div key={dim} className="mb-5 last:mb-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={cn("inline-grid place-items-center w-7 h-7 rounded-full border-[2.5px] border-ink", meta.color)}>
-                      <DimIcon name={meta.iconName} size={14} />
+            {/* Un seul panneau horizontal, regroupé visuellement par secteur. */}
+            <div className="flex flex-col gap-3">
+              {(Object.keys(categories) as DimensionKey[]).map((dim) => {
+                const meta = DIM_META[dim];
+                return (
+                  <div key={dim} className="flex flex-wrap items-center gap-2">
+                    <span className={cn(
+                      "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border-[2.5px] border-ink font-display text-[11px] tracking-widest uppercase shrink-0",
+                      meta.color
+                    )}>
+                      <DimIcon name={meta.iconName} size={12} />
+                      {meta.label}
                     </span>
-                    <h3 className="font-display tracking-wide text-sm uppercase">{vocab.group} {meta.label}</h3>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-2">
                     {categories[dim].skills.map((sk) => {
                       const checked = selectedSkills.includes(sk.id);
                       return (
                         <button
                           key={sk.id}
                           onClick={() => toggleSkill(sk.id)}
+                          title={sk.name}
                           className={cn(
-                            "text-left p-3 rounded-2xl border-[3px] border-ink transition-all",
-                            checked ? "bg-primary text-primary-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+                            "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border-[2.5px] border-ink font-display text-[11px] tracking-wide transition-all",
+                            checked
+                              ? cn(meta.color, "shadow-pop-sm -translate-y-0.5 ring-2 ring-ink/30")
+                              : "bg-surface hover:bg-surface-2 text-ink"
                           )}
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-display text-xs px-2 py-0.5 rounded-full bg-ink text-surface">{sk.code}</span>
-                            {checked && <CheckCircle2 size={14} strokeWidth={3} />}
-                          </div>
-                          <p className="text-xs font-semibold leading-snug">{sk.name}</p>
+                          {checked && <CheckCircle2 size={12} strokeWidth={3} />}
+                          <span className="font-display text-[10px] px-1.5 py-0.5 rounded-md bg-ink/85 text-surface">
+                            {sk.code}
+                          </span>
+                          <span className="max-w-[180px] truncate normal-case font-semibold">
+                            {sk.name}
+                          </span>
                         </button>
                       );
                     })}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex justify-center">
