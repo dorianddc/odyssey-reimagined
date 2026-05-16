@@ -155,13 +155,18 @@ function DataDashboard() {
           <h1 className="font-display text-3xl md:text-4xl tracking-wide">Analyses & Données</h1>
         </div>
         <div className="flex-1 h-1 bg-ink/10 rounded-full min-w-[40px]" />
-        <select
-          value={classId}
-          onChange={(e) => setClassId(e.target.value)}
-          className="bg-surface border-[3px] border-ink rounded-xl px-3 py-2 font-display uppercase text-xs tracking-wider shadow-pop-sm"
-        >
-          {classes.map((c) => (<option key={c.id} value={c.id}>{c.emoji} {c.name}</option>))}
-        </select>
+        <Select value={classId} onValueChange={setClassId}>
+          <SelectTrigger className="w-auto min-w-[170px] h-auto bg-surface border-[3px] border-ink rounded-xl px-3 py-2 font-display uppercase text-xs tracking-wider shadow-pop-sm hover:bg-surface-2">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl border-[2.5px] border-ink shadow-pop">
+            {classes.map((c) => (
+              <SelectItem key={c.id} value={c.id} className="font-display text-xs uppercase tracking-wider">
+                {c.emoji} {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </header>
 
       {!mounted ? (
