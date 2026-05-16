@@ -1,5 +1,5 @@
 // Level-up celebration overlay with confetti + bouncing badge.
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ChevronRight, Trophy } from "lucide-react";
 
 interface LevelUpProps {
