@@ -7,7 +7,8 @@ import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
 import { DifficultyDot } from "@/components/game/DifficultyDot";
-import { getRankBadge, MAX_LEVEL, CURRICULUM, RANK_TIERS, tierForLevel, type DimensionKey } from "@/data/curriculum";
+import { getRankBadge, MAX_LEVEL, CURRICULUM, RANK_TIERS, tierForLevel, getCycleVocab, type DimensionKey } from "@/data/curriculum";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
