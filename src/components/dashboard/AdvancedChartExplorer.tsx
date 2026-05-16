@@ -373,8 +373,14 @@ function renderChart(
   );
 }
 
-const selectCls =
-  "w-full bg-surface border-[2.5px] border-ink rounded-lg px-2.5 py-2 font-display uppercase text-[11px] tracking-wider shadow-pop-sm focus:outline-none focus:ring-2 focus:ring-primary";
+// Tailwind class buckets pour le Select shadcn — direction artistique Odyssée
+// (bords épais, ombres ludiques, arrondis prononcés).
+const triggerCls =
+  "w-full h-auto bg-surface border-[2.5px] border-ink rounded-xl px-2.5 py-2 font-display uppercase text-[11px] tracking-wider shadow-pop-sm hover:bg-surface-2 focus:ring-2 focus:ring-primary [&>span]:truncate";
+const contentCls =
+  "rounded-xl border-[2.5px] border-ink shadow-pop max-w-[320px]";
+const itemCls =
+  "font-display text-[11px] uppercase tracking-wider rounded-lg cursor-pointer";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
