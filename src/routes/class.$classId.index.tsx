@@ -247,16 +247,25 @@ function ClassRoster() {
             </button>
           ))}
 
-          <select
-            value={skillFilter}
-            onChange={(e) => setSkillFilter(e.target.value)}
-            className="ml-2 px-3 py-1.5 rounded-xl border-[2.5px] border-ink bg-surface font-display text-xs tracking-widest"
-          >
-            <option value="all">Toute compétence</option>
-            {skillsCatalog.map((s) => (
-              <option key={s.id} value={s.id}>{s.code} · {s.dimension}</option>
-            ))}
-          </select>
+          {/* Filtre par contenu (6ème) / compétence (cycle 4) — composant stylisé Odyssée. */}
+          <Select value={skillFilter} onValueChange={setSkillFilter}>
+            <SelectTrigger
+              className="ml-2 w-auto min-w-[200px] px-3 py-1.5 rounded-xl border-[2.5px] border-ink bg-surface font-display text-xs tracking-widest shadow-pop-sm h-auto hover:bg-surface-2"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-[2.5px] border-ink shadow-pop">
+              <SelectItem value="all" className="font-display text-xs tracking-widest">
+                {cls && getCycleVocab(cls.cycle).skill === "Contenu" ? "Tous les contenus" : "Toutes les compétences"}
+              </SelectItem>
+              {skillsCatalog.map((s) => (
+                <SelectItem key={s.id} value={s.id} className="text-xs">
+                  <span className="font-display tracking-wider mr-1">{s.code}</span>
+                  · {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {anyPedagogicalFilter && (
             <button
