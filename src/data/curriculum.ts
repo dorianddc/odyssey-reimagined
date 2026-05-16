@@ -361,19 +361,75 @@ export const getCycleVocab = (cycle: Cycle) =>
     ? { skill: "Contenu", skillPlural: "Contenus", group: "Secteur", groupPlural: "Secteurs" }
     : { skill: "Compétence", skillPlural: "Compétences", group: "Dimension", groupPlural: "Dimensions" };
 
-export const calculateLevelFromStars = (skillStates: Record<string, number>, cycle: Cycle): number => {
+// Niveau brut (continu) — base de calcul partagée par le niveau global et la jauge intra-niveau.
+// Cycle 3 (6ème) : formule stricte imposée — 8 contenus × 4 étoiles = 32 étoiles max.
+//   Niveau Brut = TotalÉtoiles × (5 / 8) → 8★=N5, 16★=N10, 24★=N15, 32★=N20.
+//   Chaque étoile remplit la jauge de 62.5%.
+// Cycle 4 : moyenne d'étoiles × 4 + 4, bonus +0.5 par compétence maîtrisée (5★).
+export const getRawLevel = (skillStates: Record<string, number>, cycle: Cycle): number => {
   const categories = CURRICULUM[cycle]?.categories;
-  if (!categories) return 4;
-  let totalSkillsCount = 0;
-  let totalStars = 0;
-  Object.values(categories).forEach((cat) => (totalSkillsCount += cat.skills.length));
-  Object.entries(skillStates).forEach(([, stars]) => (totalStars += Math.min(stars, 4)));
-  const averageStars = totalStars / Math.max(1, totalSkillsCount);
-  let baseLevel = averageStars * 4 + 4;
-  Object.values(skillStates).forEach((stars) => {
-    if (stars === 5) baseLevel += 0.5;
+  if (!categories) return 0;
+  // Filtrer les ID fantômes : seules les étoiles sur des skills existants comptent.
+  const validIds = new Set<string>();
+  Object.values(categories).forEach((cat) => cat.skills.forEach((s) => validIds.add(s.id)));
+  const entries = Object.entries(skillStates).filter(([id]) => validIds.has(id));
+  if (cycle === "cycle3") {
+    const maxStars = 4;
+    const totalStars = entries.reduce((acc, [, n]) => acc + Math.min(Math.max(0, n), maxStars), 0);
+    // 32 étoiles → 20 niveaux. Pas de plancher : 0 étoile = Niveau 0.
+    return Math.min(20, totalStars * (5 / 8));
+  }
+  // cycle4 (inchangé)
+  const totalSkillsCount = Object.values(categories).reduce((acc, c) => acc + c.skills.length, 0);
+  const totalStars = entries.reduce((acc, [, n]) => acc + Math.min(n, 4), 0);
+  const avg = totalStars / Math.max(1, totalSkillsCount);
+  const mastered = entries.filter(([, n]) => n === 5).length;
+  return Math.min(MAX_LEVEL, avg * 4 + 4 + mastered * 0.5);
+};
+
+export const calculateLevelFromStars = (skillStates: Record<string, number>, cycle: Cycle): number => {
+  const raw = getRawLevel(skillStates, cycle);
+  if (cycle === "cycle3") {
+    // 0 étoile ⇒ strictement N0 ; sinon floor (chaque palier complet débloque le niveau).
+    return Math.max(0, Math.min(20, Math.floor(raw)));
+  }
+  return Math.max(1, Math.min(MAX_LEVEL, Math.round(raw)));
+};
+
+// Pourcentage de remplissage de la jauge intra-niveau (0..100).
+export const getProgressPercentage = (skillStates: Record<string, number>, cycle: Cycle): number => {
+  const raw = getRawLevel(skillStates, cycle);
+  if (cycle === "cycle3") {
+    if (raw >= 20) return 100;
+    return (raw % 1) * 100; // 62.5% par étoile
+  }
+  // cycle4 : Math.round transitionne à .5 → progression sur [level-0.5 ; level+0.5]
+  const lvl = Math.max(1, Math.min(MAX_LEVEL, Math.round(raw)));
+  if (lvl >= MAX_LEVEL) return 100;
+  return Math.max(0, Math.min(100, (raw - (lvl - 0.5)) * 100));
+};
+
+// Purge des "données fantômes" : supprime de skillStates / difficulties / stagnations
+// toute clé qui ne correspond plus à un skill défini dans le CURRICULUM du cycle de l'élève.
+// Recalcule le niveau strictement à partir des données nettoyées.
+export const sanitizeStudentData = (student: Student, cycle: Cycle): Student => {
+  const cats = CURRICULUM[cycle]?.categories;
+  if (!cats) return student;
+  const validIds = new Set<string>();
+  Object.values(cats).forEach((c) => c.skills.forEach((s) => validIds.add(s.id)));
+  const cleanStates: Record<string, number> = {};
+  Object.entries(student.skillStates || {}).forEach(([k, v]) => {
+    if (validIds.has(k) && v > 0) cleanStates[k] = Math.min(v, getMaxStarsForCycle(cycle));
   });
-  return Math.max(1, Math.min(MAX_LEVEL, Math.round(baseLevel)));
+  const cleanDiff = (student.difficulties || []).filter((d) => validIds.has(d.skillId));
+  const cleanStag = (student.stagnations || []).filter((s) => validIds.has(s.skillId));
+  return {
+    ...student,
+    skillStates: cleanStates,
+    difficulties: cleanDiff,
+    stagnations: cleanStag,
+    level: calculateLevelFromStars(cleanStates, cycle),
+  };
 };
 
 // Génère la liste nominative d'une classe SANS aucune compétence acquise.
