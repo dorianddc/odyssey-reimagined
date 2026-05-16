@@ -22,13 +22,13 @@ type SortMode = "name-asc" | "name-desc" | "level-asc" | "level-desc";
 type EvalFilter = "all" | "evaluated" | "pending";
 
 type DimIconName = "Activity" | "Brain" | "Users" | "Move" | "Crosshair";
-const DIM_META: Record<DimensionKey, { label: string; iconName: DimIconName; color: string }> = {
-  moteur:      { label: "Motrice",     iconName: "Activity",  color: "bg-[oklch(0.65_0.22_25)] text-white" },
-  technique:   { label: "Technique",   iconName: "Activity",  color: "bg-[oklch(0.65_0.22_25)] text-white" },
-  deplacement: { label: "Déplacement", iconName: "Move",      color: "bg-[oklch(0.65_0.22_25)] text-white" },
-  tactique:    { label: "Tactique",    iconName: "Crosshair", color: "bg-[oklch(0.72_0.20_45)] text-white" },
-  methodo:     { label: "Méthodo",     iconName: "Brain",     color: "bg-[oklch(0.82_0.18_115)] text-ink" },
-  social:      { label: "Sociale",     iconName: "Users",     color: "bg-[oklch(0.65_0.18_240)] text-white" },
+const DIM_META: Record<DimensionKey, { label: string; iconName: DimIconName; color: string; container: string }> = {
+  moteur:      { label: "Motrice",     iconName: "Activity",  color: "bg-[oklch(0.65_0.22_25)] text-white",  container: "border-[oklch(0.65_0.22_25)] bg-[oklch(0.65_0.22_25)]/8" },
+  technique:   { label: "Technique",   iconName: "Activity",  color: "bg-[oklch(0.65_0.22_25)] text-white",  container: "border-[oklch(0.65_0.22_25)] bg-[oklch(0.65_0.22_25)]/8" },
+  deplacement: { label: "Déplacement", iconName: "Move",      color: "bg-[oklch(0.65_0.22_25)] text-white",  container: "border-[oklch(0.65_0.22_25)] bg-[oklch(0.65_0.22_25)]/8" },
+  tactique:    { label: "Tactique",    iconName: "Crosshair", color: "bg-[oklch(0.72_0.20_45)] text-white",  container: "border-[oklch(0.72_0.20_45)] bg-[oklch(0.72_0.20_45)]/8" },
+  methodo:     { label: "Méthodo",     iconName: "Brain",     color: "bg-[oklch(0.82_0.18_115)] text-ink",   container: "border-[oklch(0.82_0.18_115)] bg-[oklch(0.82_0.18_115)]/10" },
+  social:      { label: "Sociale",     iconName: "Users",     color: "bg-[oklch(0.65_0.18_240)] text-white", container: "border-[oklch(0.65_0.18_240)] bg-[oklch(0.65_0.18_240)]/8" },
 };
 
 function DimIcon({ name, size = 16 }: { name: DimIconName; size?: number }) {
