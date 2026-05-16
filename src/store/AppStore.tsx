@@ -99,19 +99,24 @@ const loadClasses = (): ClassConfig[] => {
   return DEFAULT_CLASSES;
 };
 
-const loadStudents = (): Record<string, Student[]> => {
+const loadStudents = (classes: ClassConfig[]): Record<string, Student[]> => {
   if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(LS_STUDENTS);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as Record<string, Student[]>;
-    // Migration: ensure every student has the `difficulties` array
+    const cycleByClass = new Map(classes.map((c) => [c.id, c.cycle] as const));
+    // Migration + purge des données fantômes (clés c4_* sur élèves de 6ème, etc.)
     Object.keys(parsed).forEach((cid) => {
-      parsed[cid] = (parsed[cid] || []).map((s) => ({
-        ...s,
-        difficulties: Array.isArray(s.difficulties) ? s.difficulties : [],
-        stagnations: Array.isArray(s.stagnations) ? s.stagnations : [],
-      }));
+      const cycle = cycleByClass.get(cid) ?? (cid.startsWith("6") ? "cycle3" : "cycle4");
+      parsed[cid] = (parsed[cid] || []).map((s) => {
+        const base: Student = {
+          ...s,
+          difficulties: Array.isArray(s.difficulties) ? s.difficulties : [],
+          stagnations: Array.isArray(s.stagnations) ? s.stagnations : [],
+        };
+        return sanitizeStudentData(base, cycle);
+      });
     });
     return parsed;
   } catch {
