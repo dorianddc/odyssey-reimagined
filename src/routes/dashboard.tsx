@@ -188,20 +188,32 @@ function DataDashboard() {
               Élèves de la classe
             </h2>
             <div className="flex-1" />
-            <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-              Genre
-              <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value as "all" | "F" | "M")}
-                className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px]">
-                <option value="all">Tous</option><option value="F">Filles</option><option value="M">Garçons</option>
-              </select>
-            </label>
-            <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-              Statut
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "diff" | "ok")}
-                className="bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px]">
-                <option value="all">Tous</option><option value="diff">En difficulté</option><option value="ok">Sans difficulté</option>
-              </select>
-            </label>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+              <span>Genre</span>
+              <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as "all" | "F" | "M")}>
+                <SelectTrigger className="w-auto min-w-[110px] h-auto bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px] tracking-wider shadow-pop-sm hover:bg-surface-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-[2.5px] border-ink shadow-pop">
+                  <SelectItem value="all" className="font-display text-[11px] uppercase tracking-wider">Tous</SelectItem>
+                  <SelectItem value="F" className="font-display text-[11px] uppercase tracking-wider">Filles</SelectItem>
+                  <SelectItem value="M" className="font-display text-[11px] uppercase tracking-wider">Garçons</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+              <span>Statut</span>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "diff" | "ok")}>
+                <SelectTrigger className="w-auto min-w-[160px] h-auto bg-surface border-[2.5px] border-ink rounded-lg px-2 py-1.5 font-display uppercase text-[11px] tracking-wider shadow-pop-sm hover:bg-surface-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-[2.5px] border-ink shadow-pop">
+                  <SelectItem value="all" className="font-display text-[11px] uppercase tracking-wider">Tous</SelectItem>
+                  <SelectItem value="diff" className="font-display text-[11px] uppercase tracking-wider">En difficulté</SelectItem>
+                  <SelectItem value="ok" className="font-display text-[11px] uppercase tracking-wider">Sans difficulté</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
