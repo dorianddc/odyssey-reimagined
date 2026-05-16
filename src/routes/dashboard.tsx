@@ -29,6 +29,7 @@ import { useAudio } from "@/lib/audio";
 import { cn } from "@/lib/utils";
 import { type Student } from "@/data/curriculum";
 import { AdvancedChartExplorer } from "@/components/dashboard/AdvancedChartExplorer";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
