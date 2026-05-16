@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/r
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Activity, Brain, Users, Move, Crosshair, Sparkles, Target, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
-import { CURRICULUM, MAX_LEVEL, getRankBadge, getMaxStarsForCycle, getCycleVocab, type DimensionKey } from "@/data/curriculum";
+import { CURRICULUM, MAX_LEVEL, getRankBadge, getMaxStarsForCycle, getCycleVocab, getProgressPercentage, type DimensionKey } from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
@@ -86,16 +86,10 @@ const StudentProfile = () => {
   const totalSkills = Object.values(categories).reduce((acc, c) => acc + c.skills.length, 0);
   const totalStars = Object.values(student.skillStates).reduce((acc, n) => acc + n, 0);
   const maxTotalStars = totalSkills * maxStars;
-  // XP toward next level — derive a continuous "raw level" from the same formula
-  // used by calculateLevelFromStars (avg*4 + 4 + 0.5 per mastered skill), then
-  // measure how far we are between the current rounded level and the next.
-  const rawAvg = totalStars > 0 ? Object.values(student.skillStates).reduce((a, n) => a + Math.min(n, 4), 0) / Math.max(1, totalSkills) : 0;
-  const masteredCount = Object.values(student.skillStates).filter((n) => n === 5).length;
-  const rawLevel = Math.min(MAX_LEVEL, rawAvg * 4 + 4 + masteredCount * 0.5);
-  // Math.round transitions at .5 → progression toward next level spans [level-0.5 ; level+0.5]
-  const xpPct = student.level >= MAX_LEVEL
-    ? 100
-    : Math.max(0, Math.min(100, Math.round((rawLevel - (student.level - 0.5)) * 100)));
+  // Jauge intra-niveau (0..100) — délégué au helper centralisé.
+  // Cycle 3 : (rawLevel % 1)*100, soit +62.5% par étoile (formule TotalÉtoiles × 5/8).
+  // Cycle 4 : progression entre level-0.5 et level+0.5.
+  const xpPct = Math.round(getProgressPercentage(student.skillStates, cycle));
   const levelPct = xpPct;
 
   // Animate XP bar progressively when xpPct changes (with sound).
