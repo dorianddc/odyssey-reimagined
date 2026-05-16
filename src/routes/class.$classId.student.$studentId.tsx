@@ -36,6 +36,16 @@ const dimColorClass: Record<DimensionKey, string> = {
   social:      "bg-dim-social text-white",
 };
 
+// Couleur de la bordure pour la mini-bordure latérale de la carte de contenu.
+const dimBorderClass: Record<DimensionKey, string> = {
+  moteur:      "border-l-dim-motor",
+  technique:   "border-l-dim-motor",
+  deplacement: "border-l-dim-motor",
+  tactique:    "border-l-dim-tactic",
+  methodo:     "border-l-dim-method",
+  social:      "border-l-dim-social",
+};
+
 const StudentProfile = () => {
   const { classId, studentId } = Route.useParams();
   const navigate = useTanstackNavigate();
