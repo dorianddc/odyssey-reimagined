@@ -10,6 +10,23 @@ interface LevelUpProps {
 }
 
 export const LevelUpOverlay = ({ oldLevel, newLevel, studentName, onComplete }: LevelUpProps) => {
+  // SFX joyeux joué UNIQUEMENT au franchissement d'un niveau global complet
+  // (déclenché par le mount de l'overlay, déclenché lui-même par newLevel > oldLevel).
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    try {
+      const a = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3");
+      a.volume = 0.8;
+      audioRef.current = a;
+      void a.play().catch(() => { /* autoplay bloqué : on ignore silencieusement */ });
+    } catch { /* noop */ }
+    return () => {
+      // Si l'utilisateur skippe l'animation, on coupe le son immédiatement.
+      const a = audioRef.current;
+      if (a) { try { a.pause(); a.currentTime = 0; } catch { /* noop */ } }
+    };
+  }, []);
+
   useEffect(() => {
     const t = setTimeout(onComplete, 4000);
     return () => clearTimeout(t);
