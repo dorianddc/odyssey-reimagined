@@ -14,10 +14,11 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import {
-  CURRICULUM, findSkillMeta,
+  CURRICULUM, findSkillMeta, getCycleVocab,
   type Cycle, type Student, type DimensionKey,
 } from "@/data/curriculum";
 import type { SituationRecord } from "@/store/AppStore";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type XAxisKey = "chronology" | "gender" | "dimension" | "biome";
 type YMetric = "progressedCount" | "stagnationCount" | "averageLevel";
