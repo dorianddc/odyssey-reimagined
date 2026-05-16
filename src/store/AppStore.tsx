@@ -8,6 +8,7 @@ import {
   generateClassStudents,
   findSkillMeta,
   MASTERY_THRESHOLD,
+  sanitizeStudentData,
   type Cycle,
   type Student,
   type Difficulty,
