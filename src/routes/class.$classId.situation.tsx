@@ -243,6 +243,45 @@ function SituationMode() {
                 );
               })}
             </div>
+          </div>
+
+          <div className="flex justify-center">
+            <PopButton variant="primary" size="lg" onClick={startSituation} disabled={!selectedSkills.length || !students.length}>
+              <Play size={18} strokeWidth={3} /> Démarrer la Situation ({selectedSkills.length})
+            </PopButton>
+          </div>
+
+          {!students.length && (
+            <p className="text-center text-sm font-semibold text-ink-soft">Aucun élève dans cette classe — ajoute-en avant de démarrer.</p>
+          )}
+        </section>
+      )}
+
+      {/* ============== LIVE ============== */}
+      {phase === "live" && activeSkill && (
+        <section className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+          {/* Skill tabs */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {targeted.map((sk) => {
+              const meta = DIM_META[sk.dimension];
+              const isActive = sk.id === activeSkillId;
+              return (
+                <button
+                  key={sk.id}
+                  onClick={() => setActiveSkillId(sk.id)}
+                  className={cn(
+                    "px-3 py-2 rounded-2xl border-[3px] border-ink font-display text-xs tracking-wide flex items-center gap-2 transition-all",
+                    isActive ? "bg-ink text-surface shadow-pop-sm -translate-y-0.5" : "bg-surface hover:bg-surface-2"
+                  )}
+                >
+                  <span className={cn("inline-grid place-items-center w-5 h-5 rounded-full border-[2px] border-ink", meta.color)}>
+                    <DimIcon name={meta.iconName} size={10} />
+                  </span>
+                  {sk.code} · {meta.label}
+                </button>
+              );
+            })}
+          </div>
 
           {/* Heading + criteria */}
           <div className="pop-card p-4 mb-3">
