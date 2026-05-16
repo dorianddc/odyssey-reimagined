@@ -141,7 +141,7 @@ const slugifyClassName = (name: string, existing: string[]): string => {
 
 export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   const [classes, setClasses] = useState<ClassConfig[]>(() => loadClasses());
-  const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>(() => loadStudents());
+  const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>(() => loadStudents(loadClasses()));
   const [situationHistory, setSituationHistory] = useState<SituationRecord[]>(() => loadHistory());
   const [pendingLevelUp, setPendingLevelUp] = useState<LevelUpEvent | null>(null);
   const levelUpSuspendedRef = useRef(false);
