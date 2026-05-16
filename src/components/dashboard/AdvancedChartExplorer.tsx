@@ -14,10 +14,11 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import {
-  CURRICULUM, findSkillMeta,
+  CURRICULUM, findSkillMeta, getCycleVocab,
   type Cycle, type Student, type DimensionKey,
 } from "@/data/curriculum";
 import type { SituationRecord } from "@/store/AppStore";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type XAxisKey = "chronology" | "gender" | "dimension" | "biome";
 type YMetric = "progressedCount" | "stagnationCount" | "averageLevel";
@@ -228,8 +229,12 @@ export function AdvancedChartExplorer({ students, cycle, classId, situationHisto
     });
   }, [xAxis, yMetric, effectiveSkill, filterGender, baseStudents, students, records, studentById, cycle, skillMeta]);
 
+  const vocab = getCycleVocab(cycle);
   const yMeta = Y_OPTIONS.find((o) => o.value === yMetric)!;
-  const skillLabel = skillMeta ? `${skillMeta.skill.code} · ${skillMeta.skill.name}` : "toutes compétences";
+  // Vocabulaire dynamique : "compétences" en cycle 4, "contenus" en 6ème.
+  const skillLabel = skillMeta
+    ? `${skillMeta.skill.code} · ${skillMeta.skill.name}`
+    : `tous les ${vocab.skillPlural.toLowerCase()}`;
   const genderLabel = filterGender === "all" ? "tous élèves" : (filterGender === "F" ? "Filles" : "Garçons");
   const xLabel = X_OPTIONS.find((o) => o.value === xAxis)!.label;
   const title = `${yMeta.label} — ${xLabel} · ${skillLabel} · ${genderLabel}`;
@@ -244,29 +249,46 @@ export function AdvancedChartExplorer({ students, cycle, classId, situationHisto
     <div className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop p-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <Field label="Axe horizontal (X)">
-          <select value={xAxis} onChange={(e) => setXAxis(e.target.value as XAxisKey)} className={selectCls}>
-            {X_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <Select value={xAxis} onValueChange={(v) => setXAxis(v as XAxisKey)}>
+            <SelectTrigger className={triggerCls}><SelectValue /></SelectTrigger>
+            <SelectContent className={contentCls}>
+              {X_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value} className={itemCls}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Métrique (Y)">
-          <select value={yMetric} onChange={(e) => setYMetric(e.target.value as YMetric)} className={selectCls}>
-            {Y_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <Select value={yMetric} onValueChange={(v) => setYMetric(v as YMetric)}>
+            <SelectTrigger className={triggerCls}><SelectValue /></SelectTrigger>
+            <SelectContent className={contentCls}>
+              {Y_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value} className={itemCls}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </Field>
-        <Field label="Compétence ciblée">
-          <select value={filterSkill} onChange={(e) => setFilterSkill(e.target.value)} className={selectCls}>
-            <option value="all">Toutes les compétences</option>
-            {skillOptions.map((s) => (
-              <option key={s.id} value={s.id}>{s.code} · {s.name.slice(0, 40)}{s.name.length > 40 ? "…" : ""}</option>
-            ))}
-          </select>
+        <Field label={`${vocab.skill} ciblé${vocab.skill === "Contenu" ? "" : "e"}`}>
+          {/* Mapping corrigé : on affiche skill.name (ex. "Service") et non skill.dim (ex. "technique"). */}
+          <Select value={filterSkill} onValueChange={setFilterSkill}>
+            <SelectTrigger className={triggerCls}><SelectValue /></SelectTrigger>
+            <SelectContent className={contentCls}>
+              <SelectItem value="all" className={itemCls}>
+                Tous les {vocab.skillPlural.toLowerCase()}
+              </SelectItem>
+              {skillOptions.map((s) => (
+                <SelectItem key={s.id} value={s.id} className={itemCls}>
+                  {s.code} · {s.name.slice(0, 40)}{s.name.length > 40 ? "…" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Genre">
-          <select value={filterGender} onChange={(e) => setFilterGender(e.target.value as GenderFilter)} className={selectCls}>
-            <option value="all">Tous les élèves</option>
-            <option value="F">Filles uniquement</option>
-            <option value="M">Garçons uniquement</option>
-          </select>
+          <Select value={filterGender} onValueChange={(v) => setFilterGender(v as GenderFilter)}>
+            <SelectTrigger className={triggerCls}><SelectValue /></SelectTrigger>
+            <SelectContent className={contentCls}>
+              <SelectItem value="all" className={itemCls}>Tous les élèves</SelectItem>
+              <SelectItem value="F" className={itemCls}>Filles uniquement</SelectItem>
+              <SelectItem value="M" className={itemCls}>Garçons uniquement</SelectItem>
+            </SelectContent>
+          </Select>
         </Field>
       </div>
 
@@ -351,8 +373,14 @@ function renderChart(
   );
 }
 
-const selectCls =
-  "w-full bg-surface border-[2.5px] border-ink rounded-lg px-2.5 py-2 font-display uppercase text-[11px] tracking-wider shadow-pop-sm focus:outline-none focus:ring-2 focus:ring-primary";
+// Tailwind class buckets pour le Select shadcn — direction artistique Odyssée
+// (bords épais, ombres ludiques, arrondis prononcés).
+const triggerCls =
+  "w-full h-auto bg-surface border-[2.5px] border-ink rounded-xl px-2.5 py-2 font-display uppercase text-[11px] tracking-wider shadow-pop-sm hover:bg-surface-2 focus:ring-2 focus:ring-primary [&>span]:truncate";
+const contentCls =
+  "rounded-xl border-[2.5px] border-ink shadow-pop max-w-[320px]";
+const itemCls =
+  "font-display text-[11px] uppercase tracking-wider rounded-lg cursor-pointer";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
