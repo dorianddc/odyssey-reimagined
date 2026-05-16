@@ -295,104 +295,118 @@ const StudentProfile = () => {
         </section>
       )}
 
-      {/* SKILLS — disposition masonry horizontale, ultra compacte (zero scroll). */}
+      {/* SKILLS — grille parfaite : 8 cartes identiques (cycle 3) / N cartes (cycle 4)
+          chaque carte = 1 contenu d'apprentissage avec badge secteur + descriptions L1..L4. */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 mt-8">
-        <div className="columns-1 md:columns-2 xl:columns-3 gap-4 [column-fill:_balance]">
-          {(Object.entries(categories) as [DimensionKey, (typeof categories)[DimensionKey]][]).map(
-            ([key, cat]) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          {(Object.entries(categories) as [DimensionKey, (typeof categories)[DimensionKey]][])
+            .flatMap(([key, cat]) => cat.skills.map((skill) => ({ key, cat, skill })))
+            .map(({ key, cat, skill }) => {
               const Icon = dimIcons[key];
+              const stars = student.skillStates[skill.id] || 0;
+              const isMax = stars >= maxStars;
+              const burst = burstKeys[skill.id] || 0;
+              const flagged = !!difficultyBySkill[skill.id];
+              // Description du palier acquis (niveau actuel) + palier visé (objectif).
+              const currentDesc = stars > 0 ? skill.levels[stars - 1] : null;
+              const nextDesc = stars < maxStars ? skill.levels[stars] : null;
               return (
-                <div key={key} className="mb-4 break-inside-avoid pop-card overflow-hidden">
-                  {/* En-tête secteur = badge horizontal compact */}
-                  <div className={cn(
-                    "px-3 py-2 flex items-center gap-2 border-b-[2.5px] border-ink",
-                    dimColorClass[key]
-                  )}>
-                    <div className="w-7 h-7 rounded-lg bg-surface/30 border-2 border-ink/20 grid place-items-center shrink-0">
-                      <Icon size={14} strokeWidth={3} />
-                    </div>
-                    <h2 className="font-display text-sm tracking-wide leading-none uppercase">
-                      {vocab.group} {cat.label}
-                    </h2>
-                    <span className="ml-auto font-display text-[10px] px-1.5 py-0.5 rounded-full bg-surface/30 border border-ink/20">
-                      {cat.skills.length}
+                <div
+                  key={skill.id}
+                  className={cn(
+                    "pop-card overflow-hidden flex flex-col border-l-[6px]",
+                    dimBorderClass[key],
+                    flagged && "ring-2 ring-[oklch(0.65_0.28_25)]"
+                  )}
+                >
+                  {/* Badge secteur en en-tête (toujours visible, donne la couleur identitaire) */}
+                  <div className="px-3 pt-3 pb-2 flex items-center gap-2">
+                    <span className={cn(
+                      "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border-[2.5px] border-ink font-display text-[10px] uppercase tracking-widest",
+                      dimColorClass[key]
+                    )}>
+                      <Icon size={11} strokeWidth={3} />
+                      {cat.label}
                     </span>
+                    {flagged && (
+                      <AlertTriangle size={14} strokeWidth={3} className="text-[oklch(0.65_0.28_25)] ml-auto" />
+                    )}
                   </div>
 
-                  <div className="p-2 space-y-1.5">
-                    {cat.skills.map((skill) => {
-                      const stars = student.skillStates[skill.id] || 0;
-                      const isMax = stars >= maxStars;
-                      const burst = burstKeys[skill.id] || 0;
-                      const flagged = !!difficultyBySkill[skill.id];
-                      return (
-                        <div
-                          key={skill.id}
-                          className={cn(
-                            "rounded-xl border-[2px] px-2 py-1.5 shadow-pop-sm relative transition-all",
-                            flagged
-                              ? "border-[oklch(0.65_0.28_25)] bg-[oklch(0.98_0.03_25)]"
-                              : "border-ink bg-surface-2"
-                          )}
-                        >
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className="font-display text-[10px] px-1.5 py-0.5 rounded-md bg-ink text-surface uppercase shrink-0">
-                              {skill.code}
-                            </span>
-                            <h3 className="font-display text-[12px] leading-tight flex-1 truncate" title={skill.name}>
-                              {skill.name}
-                            </h3>
-                            {flagged && (
-                              <AlertTriangle size={12} strokeWidth={3} className="text-[oklch(0.65_0.28_25)] shrink-0" />
-                            )}
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-ink-soft tabular-nums shrink-0">
-                              {stars}/{maxStars}
-                            </span>
-                          </div>
+                  {/* Code + nom du contenu */}
+                  <div className="px-3 pb-2 flex items-start gap-2">
+                    <span className="font-display text-[10px] px-1.5 py-0.5 rounded-md bg-ink text-surface uppercase shrink-0 mt-0.5">
+                      {skill.code}
+                    </span>
+                    <h3 className="font-display text-sm leading-tight">{skill.name}</h3>
+                  </div>
 
-                          <div className="flex items-center gap-1.5">
-                            <div className="flex-1 min-w-0">
-                              <StarMeter
-                                value={stars}
-                                max={maxStars}
-                                burstKey={burst}
-                                onIncrement={() => handleBump(skill.id, "up")}
-                                onDecrement={() => handleBump(skill.id, "down")}
-                              />
-                            </div>
-                            <button
-                              onClick={() => handleBump(skill.id, "down")}
-                              disabled={stars <= 0}
-                              className="w-7 h-7 grid place-items-center rounded-lg border-[2px] border-ink bg-surface text-ink-soft hover:bg-muted hover:text-ink active:translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0"
-                              aria-label="Annuler le palier"
-                              title="Annuler"
-                            >
-                              <Undo2 size={12} strokeWidth={3} />
-                            </button>
-                            <button
-                              onClick={() => handleBump(skill.id, "up")}
-                              disabled={isMax}
-                              className={cn(
-                                "h-7 px-2 inline-flex items-center gap-1 rounded-lg font-display text-[10px] uppercase tracking-wider",
-                                "border-[2px] border-ink bg-primary text-primary-foreground shadow-pop-sm",
-                                "hover:-translate-y-0.5 hover:bg-primary-glow active:translate-y-[1px] active:shadow-none",
-                                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 shrink-0 transition-all"
-                              )}
-                              aria-label="Valider le palier"
-                              title={isMax ? "Maîtrise totale" : "Valider le palier"}
-                            >
-                              {isMax ? <Trophy size={12} strokeWidth={3} /> : <Check size={12} strokeWidth={3} />}
-                              {isMax ? "Max" : "Valider"}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {/* Conduites observables — niveau actuel & objectif suivant */}
+                  <div className="px-3 pb-3 flex-1 flex flex-col gap-2">
+                    <div className="rounded-lg border-2 border-ink/15 bg-surface-2 px-2 py-1.5">
+                      <div className="text-[9px] font-bold uppercase tracking-widest text-ink-soft mb-0.5 flex items-center gap-1">
+                        <Check size={9} strokeWidth={3} />
+                        Acquis · {stars > 0 ? `L${stars}` : "L0"}
+                      </div>
+                      <p className="text-[11px] leading-snug font-semibold text-ink">
+                        {currentDesc ?? "Aucun palier acquis pour le moment."}
+                      </p>
+                    </div>
+                    <div className={cn(
+                      "rounded-lg border-2 px-2 py-1.5",
+                      nextDesc ? "border-primary/50 bg-primary/5" : "border-secondary/50 bg-secondary/10"
+                    )}>
+                      <div className="text-[9px] font-bold uppercase tracking-widest text-ink-soft mb-0.5 flex items-center gap-1">
+                        {nextDesc ? <Sparkles size={9} strokeWidth={3} /> : <Trophy size={9} strokeWidth={3} />}
+                        {nextDesc ? `Objectif · L${stars + 1}` : "Maîtrise totale"}
+                      </div>
+                      <p className="text-[11px] leading-snug font-semibold text-ink">
+                        {nextDesc ?? "Tous les paliers de ce contenu sont validés."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Star meter + actions */}
+                  <div className="px-3 py-2 border-t-2 border-dashed border-ink/15 flex items-center justify-between gap-2">
+                    <StarMeter
+                      value={stars}
+                      max={maxStars}
+                      burstKey={burst}
+                      size={18}
+                      onIncrement={() => handleBump(skill.id, "up")}
+                      onDecrement={() => handleBump(skill.id, "down")}
+                    />
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-ink-soft tabular-nums">
+                      {stars}/{maxStars}
+                    </span>
+                  </div>
+                  <div className="px-3 pb-3 flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleBump(skill.id, "down")}
+                      disabled={stars <= 0}
+                      className="h-8 px-2 inline-flex items-center gap-1 rounded-lg border-[2px] border-ink bg-surface text-ink-soft hover:bg-muted hover:text-ink active:translate-y-[1px] disabled:opacity-40 disabled:cursor-not-allowed transition-all font-display text-[10px] uppercase tracking-wider"
+                      title="Annuler le dernier palier"
+                    >
+                      <Undo2 size={12} strokeWidth={3} /> Annuler
+                    </button>
+                    <button
+                      onClick={() => handleBump(skill.id, "up")}
+                      disabled={isMax}
+                      className={cn(
+                        "flex-1 h-8 px-2 inline-flex items-center justify-center gap-1 rounded-lg font-display text-[10px] uppercase tracking-wider",
+                        "border-[2px] border-ink bg-primary text-primary-foreground shadow-pop-sm",
+                        "hover:-translate-y-0.5 hover:bg-primary-glow active:translate-y-[1px] active:shadow-none",
+                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 transition-all"
+                      )}
+                      title={isMax ? "Maîtrise totale" : "Valider le palier suivant"}
+                    >
+                      {isMax ? <Trophy size={12} strokeWidth={3} /> : <Check size={12} strokeWidth={3} />}
+                      {isMax ? "Max" : "Valider"}
+                    </button>
                   </div>
                 </div>
               );
-            }
-          )}
+            })}
         </div>
       </section>
 
