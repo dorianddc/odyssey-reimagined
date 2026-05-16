@@ -74,13 +74,41 @@ export const LS_HISTORY = "db_situation_history_v1";
 
 const EMOJI_POOL = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "💎", "🦁", "🐻", "🐯", "🦅", "🐺", "🦄", "🐲", "🌟"];
 
+// Set des skillId valides dans le curriculum courant (cycle3 + cycle4 confondus).
+const VALID_SKILL_IDS: Set<string> = (() => {
+  const ids = new Set<string>();
+  (Object.values(CURRICULUM) as Array<{ categories: Record<string, { skills: Array<{ id: string }> }> }>).forEach(
+    (cyc) => Object.values(cyc.categories).forEach((cat) => cat.skills.forEach((s) => ids.add(s.id)))
+  );
+  return ids;
+})();
+
 const loadHistory = (): SituationRecord[] => {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(LS_HISTORY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Purge silencieuse : filtre les skillId obsolètes (anciens "c3_a", "c4_b"…)
+    // puis jette les SituationRecord qui n'ont plus aucun contenu valide.
+    const cleaned = (parsed as SituationRecord[])
+      .map((r) => {
+        const validIdx = (r.skillIds || []).reduce<number[]>((acc, id, i) => {
+          if (VALID_SKILL_IDS.has(id)) acc.push(i);
+          return acc;
+        }, []);
+        return {
+          ...r,
+          skillIds: validIdx.map((i) => r.skillIds[i]),
+          skillCodes: validIdx.map((i) => r.skillCodes?.[i] ?? r.skillIds[i]),
+          progressed: (r.progressed || []).filter((p) => VALID_SKILL_IDS.has(p.skillId)),
+          stagnated: (r.stagnated || []).filter((p) => VALID_SKILL_IDS.has(p.skillId)),
+          levelUps: r.levelUps || [],
+        };
+      })
+      .filter((r) => r.skillIds.length > 0);
+    return cleaned;
   } catch {
     return [];
   }
