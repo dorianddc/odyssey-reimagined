@@ -61,6 +61,13 @@ function SituationMode() {
   const [sortMode, setSortMode] = useState<SortMode>("name-asc");
   const [evalFilter, setEvalFilter] = useState<EvalFilter>("all");
 
+  // Spatial planner
+  const [durationMin, setDurationMin] = useState(10);
+  const [courtCount, setCourtCount] = useState(2);
+  const [capacity, setCapacity] = useState(1);
+  const [assignments, setAssignments] = useState<Assignments>({});
+  const [liveView, setLiveView] = useState<"court" | "list">("court");
+
   // Debrief level-up cinematic queue (skippable)
   const [lvlIdx, setLvlIdx] = useState(0);
   const skipRef = useRef(false);
