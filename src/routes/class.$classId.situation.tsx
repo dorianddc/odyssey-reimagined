@@ -563,6 +563,21 @@ function SituationMode() {
   );
 }
 
+/** Chronomètre de la phase LIVE — déclenche `onTimeout` à 00:00. */
+function LiveTimer({
+  durationMin, onTimeout, onFinish,
+}: { durationMin: number; onTimeout: () => void; onFinish: () => void }) {
+  const { remainingMs, finished } = useCountdown(durationMin, true);
+  const calledRef = useRef(false);
+  useEffect(() => {
+    if (finished && !calledRef.current) {
+      calledRef.current = true;
+      onTimeout();
+    }
+  }, [finished, onTimeout]);
+  return <TimerBar remainingMs={remainingMs} finished={finished} onFinish={onFinish} />;
+}
+
 /** Skippable level-up overlay shown during debrief, scoped to a single student. */
 function DebriefLevelUp({
   event, onNext, onSkipAll,
