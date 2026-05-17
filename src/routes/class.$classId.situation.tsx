@@ -5,6 +5,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Play, CheckCircle2, AlertTriangle, TrendingUp, Flag, Plus, Minus,
   Activity, Brain, Users, Move, Crosshair, SortAsc, SortDesc, Trophy, ChevronRight,
+  LayoutGrid, List as ListIcon,
 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
@@ -12,6 +13,10 @@ import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { CURRICULUM, type DimensionKey, findSkillMeta, getMaxStarsForCycle, getCycleVocab, type Student } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
+import {
+  CourtConfig, SpatialSetup, LiveCourtGrid, EvalCard, TimerBar, useCountdown,
+  type Assignments,
+} from "@/components/situation/SpatialPlanner";
 
 export const Route = createFileRoute("/class/$classId/situation")({
   component: SituationMode,
