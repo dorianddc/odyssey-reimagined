@@ -5,6 +5,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft, Play, CheckCircle2, AlertTriangle, TrendingUp, Flag, Plus, Minus,
   Activity, Brain, Users, Move, Crosshair, SortAsc, SortDesc, Trophy, ChevronRight,
+  LayoutGrid, List as ListIcon,
 } from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
@@ -12,6 +13,10 @@ import { PopButton } from "@/components/game/PopButton";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { CURRICULUM, type DimensionKey, findSkillMeta, getMaxStarsForCycle, getCycleVocab, type Student } from "@/data/curriculum";
 import { cn } from "@/lib/utils";
+import {
+  CourtConfig, SpatialSetup, LiveCourtGrid, EvalCard, TimerBar, useCountdown,
+  type Assignments,
+} from "@/components/situation/SpatialPlanner";
 
 export const Route = createFileRoute("/class/$classId/situation")({
   component: SituationMode,
@@ -55,6 +60,13 @@ function SituationMode() {
   // Live toolbar
   const [sortMode, setSortMode] = useState<SortMode>("name-asc");
   const [evalFilter, setEvalFilter] = useState<EvalFilter>("all");
+
+  // Spatial planner
+  const [durationMin, setDurationMin] = useState(10);
+  const [courtCount, setCourtCount] = useState(2);
+  const [capacity, setCapacity] = useState(1);
+  const [assignments, setAssignments] = useState<Assignments>({});
+  const [liveView, setLiveView] = useState<"court" | "list">("court");
 
   // Debrief level-up cinematic queue (skippable)
   const [lvlIdx, setLvlIdx] = useState(0);
@@ -165,11 +177,7 @@ function SituationMode() {
               </span>
             </div>
           </div>
-          {phase === "live" && (
-            <PopButton variant="hot" size="md" onClick={finishSituation}>
-              <Flag size={16} strokeWidth={3} /> Terminer
-            </PopButton>
-          )}
+          {/* Le bouton "Terminer" est intégré à la TimerBar pendant la phase LIVE. */}
         </div>
       </header>
 
@@ -245,9 +253,31 @@ function SituationMode() {
             </div>
           </div>
 
+          {/* Configuration spatiale + Timer */}
+          <div className="pop-card p-5 md:p-6 space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl leading-tight">Gymnase virtuel</h2>
+                <p className="text-xs font-semibold text-ink-soft">Glisse chaque élève dans un demi-terrain, ou utilise la baguette magique.</p>
+              </div>
+              <CourtConfig
+                courtCount={courtCount} setCourtCount={setCourtCount}
+                capacity={capacity} setCapacity={setCapacity}
+                durationMin={durationMin} setDurationMin={setDurationMin}
+              />
+            </div>
+            <SpatialSetup
+              students={students}
+              courtCount={courtCount}
+              capacity={capacity}
+              assignments={assignments}
+              setAssignments={setAssignments}
+            />
+          </div>
+
           <div className="flex justify-center">
             <PopButton variant="primary" size="lg" onClick={startSituation} disabled={!selectedSkills.length || !students.length}>
-              <Play size={18} strokeWidth={3} /> Démarrer la Situation ({selectedSkills.length})
+              <Play size={18} strokeWidth={3} /> Démarrer la Situation ({selectedSkills.length}) · {durationMin} min
             </PopButton>
           </div>
 
@@ -259,9 +289,28 @@ function SituationMode() {
 
       {/* ============== LIVE ============== */}
       {phase === "live" && activeSkill && (
-        <section className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+        <section className="max-w-7xl mx-auto px-4 md:px-8 py-4 space-y-3">
+          {/* Timer + Toggle vue */}
+          <div className="flex flex-col lg:flex-row gap-3 items-stretch">
+            <div className="flex-1 min-w-0">
+              <LiveTimer durationMin={durationMin} onTimeout={finishSituation} onFinish={finishSituation} />
+            </div>
+            <div className="inline-flex items-stretch border-[3px] border-ink rounded-2xl overflow-hidden shadow-pop-sm bg-surface">
+              <button onClick={() => setLiveView("court")}
+                className={cn("px-3 inline-flex items-center gap-1.5 font-display text-[11px] uppercase tracking-widest transition-colors",
+                  liveView === "court" ? "bg-ink text-surface" : "hover:bg-surface-2")}>
+                <LayoutGrid size={14} strokeWidth={3} /> Terrains
+              </button>
+              <button onClick={() => setLiveView("list")}
+                className={cn("px-3 inline-flex items-center gap-1.5 font-display text-[11px] uppercase tracking-widest transition-colors border-l-[3px] border-ink",
+                  liveView === "list" ? "bg-ink text-surface" : "hover:bg-surface-2")}>
+                <ListIcon size={14} strokeWidth={3} /> Liste
+              </button>
+            </div>
+          </div>
+
           {/* Skill tabs */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-2">
             {targeted.map((sk) => {
               const meta = DIM_META[sk.dimension];
               const isActive = sk.id === activeSkillId;
@@ -284,7 +333,7 @@ function SituationMode() {
           </div>
 
           {/* Heading + criteria */}
-          <div className="pop-card p-4 mb-3">
+          <div className="pop-card p-4">
             <span className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">{vocab.skill} évalué{vocab.skill === "Contenu" ? "" : "e"}</span>
             <h2 className="font-display text-xl leading-snug mb-3">{activeSkill.code} — {activeSkill.name}</h2>
 
@@ -303,116 +352,141 @@ function SituationMode() {
             </div>
           </div>
 
-          {/* Toolbar — tri + filtre */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">Tri</span>
-            {([
-              { k: "name-asc", label: "A→Z", icon: <SortAsc size={12} strokeWidth={3} /> },
-              { k: "name-desc", label: "Z→A", icon: <SortDesc size={12} strokeWidth={3} /> },
-              { k: "level-asc", label: "Niv ↑", icon: <SortAsc size={12} strokeWidth={3} /> },
-              { k: "level-desc", label: "Niv ↓", icon: <SortDesc size={12} strokeWidth={3} /> },
-            ] as const).map((opt) => (
-              <button
-                key={opt.k}
-                onClick={() => setSortMode(opt.k)}
-                className={cn(
-                  "px-2.5 py-1 rounded-xl border-[2.5px] border-ink font-display text-[11px] tracking-widest inline-flex items-center gap-1 transition-all",
-                  sortMode === opt.k ? "bg-secondary text-secondary-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
-                )}
-              >
-                {opt.icon} {opt.label}
-              </button>
-            ))}
+          {/* Vue Terrains : représentation spatiale conservée depuis la config */}
+          {liveView === "court" && (
+            <LiveCourtGrid
+              courtCount={courtCount}
+              assignments={assignments}
+              students={students}
+              renderCard={(s) => {
+                const stars = s.skillStates[activeSkill.id] ?? 0;
+                const before = snapshot[s.id]?.[activeSkill.id] ?? 0;
+                return (
+                  <EvalCard
+                    student={s}
+                    stars={stars}
+                    before={before}
+                    maxStars={maxStars}
+                    onPlus={() => { bumpSkill(classId, s.id, activeSkill.id, "up"); setPulseKey((k) => k + 1); }}
+                    onMinus={() => { bumpSkill(classId, s.id, activeSkill.id, "down"); setPulseKey((k) => k + 1); }}
+                  />
+                );
+              }}
+            />
+          )}
 
-            <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">État</span>
-            {([
-              { k: "all", label: "Tous" },
-              { k: "evaluated", label: "Évalués" },
-              { k: "pending", label: "Non évalués" },
-            ] as const).map((opt) => (
-              <button
-                key={opt.k}
-                onClick={() => setEvalFilter(opt.k)}
-                className={cn(
-                  "px-2.5 py-1 rounded-xl border-[2.5px] border-ink font-display text-[11px] tracking-widest transition-all",
-                  evalFilter === opt.k ? "bg-primary text-primary-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
+          {/* Vue Liste classique */}
+          {liveView === "list" && (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">Tri</span>
+                {([
+                  { k: "name-asc", label: "A→Z", icon: <SortAsc size={12} strokeWidth={3} /> },
+                  { k: "name-desc", label: "Z→A", icon: <SortDesc size={12} strokeWidth={3} /> },
+                  { k: "level-asc", label: "Niv ↑", icon: <SortAsc size={12} strokeWidth={3} /> },
+                  { k: "level-desc", label: "Niv ↓", icon: <SortDesc size={12} strokeWidth={3} /> },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.k}
+                    onClick={() => setSortMode(opt.k)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-xl border-[2.5px] border-ink font-display text-[11px] tracking-widest inline-flex items-center gap-1 transition-all",
+                      sortMode === opt.k ? "bg-secondary text-secondary-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+                    )}
+                  >
+                    {opt.icon} {opt.label}
+                  </button>
+                ))}
 
-            <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-ink-soft">
-              {liveStudents.length} / {students.length} élèves
-            </span>
-          </div>
+                <span className="ml-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ink-soft">État</span>
+                {([
+                  { k: "all", label: "Tous" },
+                  { k: "evaluated", label: "Évalués" },
+                  { k: "pending", label: "Non évalués" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.k}
+                    onClick={() => setEvalFilter(opt.k)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-xl border-[2.5px] border-ink font-display text-[11px] tracking-widest transition-all",
+                      evalFilter === opt.k ? "bg-primary text-primary-foreground shadow-pop-sm" : "bg-surface hover:bg-surface-2"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
 
-          {/* Compact student grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-            {liveStudents.map(({ s, stars, before, evaluated }) => {
-              const moved = stars - before;
-              return (
-                <div
-                  key={s.id}
-                  className={cn(
-                    "pop-card p-2.5 flex flex-col gap-1.5 relative",
-                    evaluated && "ring-2 ring-secondary/60"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <AvatarBlob name={s.name} hue={s.avatarHue} size={32} rank="rookie" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display text-sm leading-tight truncate">{s.name}</p>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-ink-soft">
-                        Niv. {stars}{moved !== 0 && (
-                          <span className={cn("ml-1", moved > 0 ? "text-secondary" : "text-hot")}>
-                            {moved > 0 ? `+${moved}` : moved}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* dots */}
-                  <div className="flex items-center gap-0.5 justify-center">
-                    {Array.from({ length: maxStars }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={cn(
-                          "w-2.5 h-2.5 rounded-full border-[1.5px] border-ink transition-all",
-                          i < stars ? "bg-gradient-sun" : "bg-surface-2"
-                        )}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <button
-                      onClick={() => { bumpSkill(classId, s.id, activeSkill.id, "down"); setPulseKey((k) => k + 1); }}
-                      disabled={stars <= 0}
-                      className="flex-1 h-9 rounded-xl border-[2.5px] border-ink bg-surface hover:bg-hot hover:text-hot-foreground active:translate-y-[2px] transition-all grid place-items-center disabled:opacity-40"
-                      aria-label="Diminuer"
-                    >
-                      <Minus size={16} strokeWidth={3.5} />
-                    </button>
-                    <button
-                      onClick={() => { bumpSkill(classId, s.id, activeSkill.id, "up"); setPulseKey((k) => k + 1); }}
-                      disabled={stars >= maxStars}
-                      className="flex-[1.4] h-9 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none transition-all grid place-items-center disabled:opacity-40"
-                      aria-label="Augmenter"
-                    >
-                      <Plus size={18} strokeWidth={3.5} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-            {liveStudents.length === 0 && (
-              <div className="col-span-full text-center py-12 font-semibold text-ink-soft">
-                Aucun élève ne correspond au filtre.
+                <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                  {liveStudents.length} / {students.length} élèves
+                </span>
               </div>
-            )}
-          </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+                {liveStudents.map(({ s, stars, before, evaluated }) => {
+                  const moved = stars - before;
+                  return (
+                    <div
+                      key={s.id}
+                      className={cn(
+                        "pop-card p-2.5 flex flex-col gap-1.5 relative",
+                        evaluated && "ring-2 ring-secondary/60"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <AvatarBlob name={s.name} hue={s.avatarHue} size={32} rank="rookie" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-display text-sm leading-tight truncate">{s.name}</p>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-ink-soft">
+                            Niv. {stars}{moved !== 0 && (
+                              <span className={cn("ml-1", moved > 0 ? "text-secondary" : "text-hot")}>
+                                {moved > 0 ? `+${moved}` : moved}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-0.5 justify-center">
+                        {Array.from({ length: maxStars }).map((_, i) => (
+                          <span
+                            key={i}
+                            className={cn(
+                              "w-2.5 h-2.5 rounded-full border-[1.5px] border-ink transition-all",
+                              i < stars ? "bg-gradient-sun" : "bg-surface-2"
+                            )}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <button
+                          onClick={() => { bumpSkill(classId, s.id, activeSkill.id, "down"); setPulseKey((k) => k + 1); }}
+                          disabled={stars <= 0}
+                          className="flex-1 h-9 rounded-xl border-[2.5px] border-ink bg-surface hover:bg-hot hover:text-hot-foreground active:translate-y-[2px] transition-all grid place-items-center disabled:opacity-40"
+                          aria-label="Diminuer"
+                        >
+                          <Minus size={16} strokeWidth={3.5} />
+                        </button>
+                        <button
+                          onClick={() => { bumpSkill(classId, s.id, activeSkill.id, "up"); setPulseKey((k) => k + 1); }}
+                          disabled={stars >= maxStars}
+                          className="flex-[1.4] h-9 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none transition-all grid place-items-center disabled:opacity-40"
+                          aria-label="Augmenter"
+                        >
+                          <Plus size={18} strokeWidth={3.5} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {liveStudents.length === 0 && (
+                  <div className="col-span-full text-center py-12 font-semibold text-ink-soft">
+                    Aucun élève ne correspond au filtre.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
           <div key={pulseKey} className="sr-only">tap</div>
         </section>
       )}
@@ -487,6 +561,21 @@ function SituationMode() {
       )}
     </main>
   );
+}
+
+/** Chronomètre de la phase LIVE — déclenche `onTimeout` à 00:00. */
+function LiveTimer({
+  durationMin, onTimeout, onFinish,
+}: { durationMin: number; onTimeout: () => void; onFinish: () => void }) {
+  const { remainingMs, finished } = useCountdown(durationMin, true);
+  const calledRef = useRef(false);
+  useEffect(() => {
+    if (finished && !calledRef.current) {
+      calledRef.current = true;
+      onTimeout();
+    }
+  }, [finished, onTimeout]);
+  return <TimerBar remainingMs={remainingMs} finished={finished} onFinish={onFinish} />;
 }
 
 /** Skippable level-up overlay shown during debrief, scoped to a single student. */
