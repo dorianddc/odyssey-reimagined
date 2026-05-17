@@ -177,11 +177,7 @@ function SituationMode() {
               </span>
             </div>
           </div>
-          {phase === "live" && (
-            <PopButton variant="hot" size="md" onClick={finishSituation}>
-              <Flag size={16} strokeWidth={3} /> Terminer
-            </PopButton>
-          )}
+          {/* Le bouton "Terminer" est intégré à la TimerBar pendant la phase LIVE. */}
         </div>
       </header>
 
