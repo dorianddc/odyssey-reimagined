@@ -257,9 +257,31 @@ function SituationMode() {
             </div>
           </div>
 
+          {/* Configuration spatiale + Timer */}
+          <div className="pop-card p-5 md:p-6 space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl leading-tight">Gymnase virtuel</h2>
+                <p className="text-xs font-semibold text-ink-soft">Glisse chaque élève dans un demi-terrain, ou utilise la baguette magique.</p>
+              </div>
+              <CourtConfig
+                courtCount={courtCount} setCourtCount={setCourtCount}
+                capacity={capacity} setCapacity={setCapacity}
+                durationMin={durationMin} setDurationMin={setDurationMin}
+              />
+            </div>
+            <SpatialSetup
+              students={students}
+              courtCount={courtCount}
+              capacity={capacity}
+              assignments={assignments}
+              setAssignments={setAssignments}
+            />
+          </div>
+
           <div className="flex justify-center">
             <PopButton variant="primary" size="lg" onClick={startSituation} disabled={!selectedSkills.length || !students.length}>
-              <Play size={18} strokeWidth={3} /> Démarrer la Situation ({selectedSkills.length})
+              <Play size={18} strokeWidth={3} /> Démarrer la Situation ({selectedSkills.length}) · {durationMin} min
             </PopButton>
           </div>
 
