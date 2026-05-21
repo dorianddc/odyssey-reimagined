@@ -318,7 +318,8 @@ function CompareRadar({ students, cycle }: Props) {
 function hashJitter(id: string, salt: number) {
   let h = salt;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return ((h % 1000) / 1000 - 0.5) * 0.15;
+  // Amplitude ±0.32 → grappes bien lisibles autour de chaque note entière sans sortir du domaine 0..4.
+  return ((h % 1000) / 1000 - 0.5) * 0.64;
 }
 
 function ZoomControls() {
@@ -360,8 +361,9 @@ function NeedsMatrix({ students, cycle }: Props) {
     }
     const scoreMoteur = round2(avg(motorIds.map((id) => s.skillStates?.[id] ?? 0)));
     const scoreSocio = round2(avg(socioIds.map((id) => s.skillStates?.[id] ?? 0)));
-    const displayX = scoreMoteur + hashJitter(s.id, 7);
-    const displayY = scoreSocio + hashJitter(s.id, 13);
+    const clamp = (n: number) => Math.max(0.05, Math.min(3.95, n));
+    const displayX = clamp(scoreMoteur + hashJitter(s.id, 7));
+    const displayY = clamp(scoreSocio + hashJitter(s.id, 13));
     return { id: s.id, name: s.name, gender: s.gender, scoreMoteur, scoreSocio, displayX, displayY };
   }), [students, cycle, isC3]);
 
@@ -421,7 +423,7 @@ function NeedsMatrix({ students, cycle }: Props) {
                         tick={{ fontSize: 11, fontWeight: 700 }}
                         label={{ value: "Socio-Méthodo ↑", angle: -90, position: "insideLeft", fontSize: 11, fontWeight: 700 }}
                       />
-                      <ZAxis range={[120, 120]} />
+                      <ZAxis range={[260, 260]} />
                       <ReferenceArea x1={meanMotor} x2={4} y1={meanSocio} y2={4} fill="#dcfce7" fillOpacity={0.55} stroke="none"
                         label={{ value: "Leaders", position: "insideTopRight", fill: "#15803d", fontSize: 11, fontWeight: 800 }} />
                       <ReferenceArea x1={0} x2={meanMotor} y1={meanSocio} y2={4} fill="#dbeafe" fillOpacity={0.55} stroke="none"
