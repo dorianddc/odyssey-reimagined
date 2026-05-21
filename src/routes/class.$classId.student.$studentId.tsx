@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/r
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Activity, Brain, Users, Move, Crosshair, Sparkles, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
-import { CURRICULUM, MAX_LEVEL, getRankBadge, getMaxStarsForCycle, getCycleVocab, getProgressPercentage, type DimensionKey } from "@/data/curriculum";
+import { CURRICULUM, MAX_LEVEL, generateClassStudents, getRankBadge, getMaxStarsForCycle, getCycleVocab, getProgressPercentage, type Difficulty, type DimensionKey } from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
@@ -73,39 +73,34 @@ const StudentProfile = () => {
     setBgm("profile");
   }, [setBgm]);
 
-  const student = getStudent(classId, studentId);
-  const cycle = cls?.cycle;
+  const storedClassStudents = studentsByClass[classId];
+  const fallbackClassStudents = useMemo(() => storedClassStudents ? [] : generateClassStudents(classId), [storedClassStudents, classId]);
+  const classStudents = storedClassStudents ?? fallbackClassStudents;
+  const student = getStudent(classId, studentId) ?? classStudents.find((s) => s.id === studentId);
+  const cycle = cls?.cycle ?? "cycle3";
   const rank = useMemo(() => (student ? getRankBadge(student.level) : null), [student]);
-
-  if (!cls || !student || !cycle) {
-    return (
-      <main className="min-h-screen grid place-items-center p-8">
-        <div className="pop-card p-8 text-center">
-          <p className="font-display text-3xl">Élève introuvable</p>
-          <PopButton variant="primary" onClick={() => goHome()} className="mt-4">
-            Retour à l'accueil
-          </PopButton>
-        </div>
-      </main>
-    );
-  }
 
   const categories = CURRICULUM[cycle].categories;
   const maxStars = getMaxStarsForCycle(cycle);
   const vocab = getCycleVocab(cycle);
   const totalSkills = Object.values(categories).reduce((acc, c) => acc + c.skills.length, 0);
-  const totalStars = Object.values(student.skillStates).reduce((acc, n) => acc + n, 0);
+  const totalStars = student ? Object.values(student.skillStates).reduce((acc, n) => acc + n, 0) : 0;
   const maxTotalStars = totalSkills * maxStars;
   // Jauge intra-niveau (0..100) — délégué au helper centralisé.
   // Cycle 3 : (rawLevel % 1)*100, soit +62.5% par étoile (formule TotalÉtoiles × 5/8).
   // Cycle 4 : progression entre level-0.5 et level+0.5.
-  const xpPct = Math.round(getProgressPercentage(student.skillStates, cycle));
+  const xpPct = student ? Math.round(getProgressPercentage(student.skillStates, cycle)) : 0;
   const levelPct = xpPct;
 
   // Animate XP bar progressively when xpPct changes (with sound).
   // First mount = jump straight to current value (no animation).
   // Subsequent changes = slow animated fill (~3.5s) + xp SFX on gain.
   useEffect(() => {
+    if (!student) {
+      lastXpRef.current = null;
+      setAnimatedXp(null);
+      return;
+    }
     const from = lastXpRef.current;
     const to = xpPct;
     if (from === null) {
@@ -129,7 +124,27 @@ const StudentProfile = () => {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [xpPct, playSfx]);
+  }, [student, xpPct, playSfx]);
+
+  // Map of difficulties by skillId for quick lookup
+  const difficultyBySkill = useMemo(() => {
+    const map: Record<string, Difficulty> = {};
+    (student?.difficulties || []).forEach((d) => { map[d.skillId] = d; });
+    return map;
+  }, [student?.difficulties]);
+
+  if (!cls || !student || !rank) {
+    return (
+      <main className="min-h-screen grid place-items-center p-8">
+        <div className="pop-card p-8 text-center">
+          <p className="font-display text-3xl">Élève introuvable</p>
+          <PopButton variant="primary" onClick={() => goHome()} className="mt-4">
+            Retour à l'accueil
+          </PopButton>
+        </div>
+      </main>
+    );
+  }
 
   const handleBump = (skillId: string, dir: "up" | "down") => {
     bumpSkill(classId, studentId, skillId, dir);
@@ -137,13 +152,6 @@ const StudentProfile = () => {
       setBurstKeys((b) => ({ ...b, [skillId]: (b[skillId] || 0) + 1 }));
     }
   };
-
-  // Map of difficulties by skillId for quick lookup
-  const difficultyBySkill = useMemo(() => {
-    const map: Record<string, typeof student.difficulties[number]> = {};
-    (student.difficulties || []).forEach((d) => { map[d.skillId] = d; });
-    return map;
-  }, [student.difficulties]);
 
   return (
     <main className="min-h-screen pb-24">
@@ -242,9 +250,9 @@ const StudentProfile = () => {
             </div>
 
             {/* radar comparatif élève vs moyenne classe */}
-            <div className="flex justify-center md:justify-end w-full">
-              <div className="w-full max-w-[420px]">
-                <ComparativeRadar student={student} classmates={studentsByClass[classId] ?? [student]} cycle={cycle} height={320} />
+            <div className="flex justify-center md:justify-end w-full min-w-0">
+              <div className="w-full min-w-[280px] max-w-[420px] md:w-[420px] h-[320px] shrink-0">
+                <ComparativeRadar student={student} classmates={classStudents.length ? classStudents : [student]} cycle={cycle} height={320} />
               </div>
             </div>
           </div>

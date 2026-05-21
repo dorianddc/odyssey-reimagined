@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  Tooltip, Legend, ResponsiveContainer,
+  Tooltip, Legend,
 } from "recharts";
 import { CURRICULUM, type Cycle, type Student, type DimensionKey, getMaxStarsForCycle } from "@/data/curriculum";
 
@@ -54,7 +54,9 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
         subject: sk.code,
         fullName: sk.name,
         studentLevel,
+        studentPlotLevel: studentLevel === 0 ? 0.16 : studentLevel,
         classAvg,
+        classAvgPlot: classAvg === 0 ? 0.1 : classAvg,
       };
     });
     return { data: rows, hasClassAvg: canComputeAvg };
@@ -69,8 +71,8 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
   }
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <RadarChart data={data} outerRadius="78%">
+    <div className="w-full overflow-visible" style={{ height }}>
+      <RadarChart width={420} height={height} data={data} outerRadius="72%" margin={{ top: 16, right: 28, bottom: 24, left: 28 }}>
         <PolarGrid stroke="oklch(0.5 0 0 / 0.25)" />
         <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontWeight: 700 }} />
         <PolarRadiusAxis
@@ -83,20 +85,22 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
         {hasClassAvg && (
           <Radar
             name="Moyenne classe"
-            dataKey="classAvg"
+            dataKey="classAvgPlot"
             stroke="#9ca3af"
             fill="none"
             strokeDasharray="4 4"
             strokeWidth={2}
+            dot={{ r: 3, fill: "#9ca3af", strokeWidth: 0 }}
           />
         )}
         <Radar
           name={student.name}
-          dataKey="studentLevel"
+          dataKey="studentPlotLevel"
           stroke={HIGHLIGHT}
           fill={HIGHLIGHT}
-          fillOpacity={0.5}
-          strokeWidth={2.5}
+          fillOpacity={0.45}
+          strokeWidth={3}
+          dot={{ r: 4, fill: HIGHLIGHT, stroke: "#ffffff", strokeWidth: 1.5 }}
         />
         <Tooltip
           contentStyle={tooltipStyle}
@@ -105,10 +109,13 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
             const row = data.find((d) => d.subject === label);
             return row ? `${label} · ${row.fullName}` : label;
           }}
-          formatter={(v: number, name: string) => [`${round2(Number(v))} / ${max}`, name]}
+          formatter={(_v: number, name: string, ctx: { payload?: { studentLevel?: number; classAvg?: number } }) => {
+            const trueValue = name === student.name ? ctx.payload?.studentLevel : ctx.payload?.classAvg;
+            return [`${round2(Number(trueValue ?? 0))} / ${max}`, name];
+          }}
         />
         <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700, paddingTop: 8 }} />
       </RadarChart>
-    </ResponsiveContainer>
+    </div>
   );
 }
