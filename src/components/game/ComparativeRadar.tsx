@@ -41,8 +41,6 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
     }));
   }, [student, classmates, cycle]);
 
-  const ticks = Array.from({ length: max + 1 }, (_, i) => i);
-
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RadarChart data={data} outerRadius="78%">
@@ -52,7 +50,6 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
           angle={30}
           domain={[0, max]}
           tickCount={max + 1}
-          ticks={ticks}
           tick={{ fontSize: 10 }}
           allowDecimals={false}
         />
