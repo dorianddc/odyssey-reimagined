@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ZoomOut } from "lucide-react";
 
 interface Props {
   students: Student[];
@@ -311,11 +312,18 @@ function CompareRadar({ students, cycle }: Props) {
 }
 
 // ============================================================================
-// 4. MATRICE DES BESOINS — ScatterChart 2D
+// 4. MATRICE DES BESOINS — ScatterChart 2D avec Zoom par sélection
 // ============================================================================
 function NeedsMatrix({ students, cycle }: Props) {
-  // Pour le cycle 4 on retombe sur dimensions "moteur" vs "methodo+social".
   const isC3 = cycle === "cycle3";
+
+  const [xDomain, setXDomain] = useState<[number, number]>([0, 4]);
+  const [yDomain, setYDomain] = useState<[number, number]>([0, 4]);
+  const [refAreaLeft, setRefAreaLeft] = useState<number | null>(null);
+  const [refAreaRight, setRefAreaRight] = useState<number | null>(null);
+  const [refAreaTop, setRefAreaTop] = useState<number | null>(null);
+  const [refAreaBottom, setRefAreaBottom] = useState<number | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
 
   const points = useMemo(() => students.map((s) => {
     const motorIds: string[] = [];
@@ -336,7 +344,6 @@ function NeedsMatrix({ students, cycle }: Props) {
     }
     const scoreMoteur = round2(avg(motorIds.map((id) => s.skillStates?.[id] ?? 0)));
     const scoreSocio = round2(avg(socioIds.map((id) => s.skillStates?.[id] ?? 0)));
-    // Jitter d'affichage pour désuperposer les points (overplotting).
     const displayX = scoreMoteur + (Math.random() - 0.5) * 0.15;
     const displayY = scoreSocio + (Math.random() - 0.5) * 0.15;
     return { id: s.id, name: s.name, gender: s.gender, scoreMoteur, scoreSocio, displayX, displayY };
@@ -345,25 +352,120 @@ function NeedsMatrix({ students, cycle }: Props) {
   const meanMotor = round2(avg(points.map((p) => p.scoreMoteur)));
   const meanSocio = round2(avg(points.map((p) => p.scoreSocio)));
 
+  const isZoomed = xDomain[0] !== 0 || xDomain[1] !== 4 || yDomain[0] !== 0 || yDomain[1] !== 4;
+
+  const pixelToData = (chartX: number, chartY: number, offset: any) => {
+    const plotLeft = offset.left;
+    const plotRight = offset.width - offset.right;
+    const plotTop = offset.top;
+    const plotBottom = offset.height - offset.bottom;
+    const plotWidth = Math.max(1, plotRight - plotLeft);
+    const plotHeight = Math.max(1, plotBottom - plotTop);
+
+    const plotX = chartX - plotLeft;
+    const plotY = chartY - plotTop;
+
+    const normX = Math.max(0, Math.min(1, plotX / plotWidth));
+    const normY = Math.max(0, Math.min(1, plotY / plotHeight));
+
+    const dataX = xDomain[0] + normX * (xDomain[1] - xDomain[0]);
+    const dataY = yDomain[1] - normY * (yDomain[1] - yDomain[0]);
+    return { x: round2(dataX), y: round2(dataY) };
+  };
+
+  const handleMouseDown = (e: any) => {
+    if (!e || !e.offset || e.chartX == null || e.chartY == null) return;
+    setIsSelecting(true);
+    const { x, y } = pixelToData(e.chartX, e.chartY, e.offset);
+    setRefAreaLeft(x);
+    setRefAreaRight(x);
+    setRefAreaTop(y);
+    setRefAreaBottom(y);
+  };
+
+  const handleMouseMove = (e: any) => {
+    if (!isSelecting || !e || e.chartX == null || e.chartY == null) return;
+    const { x, y } = pixelToData(e.chartX, e.chartY, e.offset);
+    setRefAreaRight(x);
+    setRefAreaBottom(y);
+  };
+
+  const handleMouseUp = () => {
+    if (!isSelecting) return;
+    setIsSelecting(false);
+    if (
+      refAreaLeft != null &&
+      refAreaRight != null &&
+      refAreaTop != null &&
+      refAreaBottom != null
+    ) {
+      const xMin = Math.min(refAreaLeft, refAreaRight);
+      const xMax = Math.max(refAreaLeft, refAreaRight);
+      const yMin = Math.min(refAreaTop, refAreaBottom);
+      const yMax = Math.max(refAreaTop, refAreaBottom);
+      if (xMax - xMin > 0.15 && yMax - yMin > 0.15) {
+        setXDomain([round2(xMin), round2(xMax)]);
+        setYDomain([round2(yMin), round2(yMax)]);
+      }
+    }
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+    setRefAreaTop(null);
+    setRefAreaBottom(null);
+  };
+
+  const resetZoom = () => {
+    setXDomain([0, 4]);
+    setYDomain([0, 4]);
+  };
+
   if (students.length === 0) return <EmptyBox label="Aucun élève dans cette classe." />;
+
+  const selecting =
+    refAreaLeft != null &&
+    refAreaRight != null &&
+    refAreaTop != null &&
+    refAreaBottom != null;
+
+  const selX1 = selecting ? Math.min(refAreaLeft, refAreaRight) : undefined;
+  const selX2 = selecting ? Math.max(refAreaLeft, refAreaRight) : undefined;
+  const selY1 = selecting ? Math.min(refAreaTop, refAreaBottom) : undefined;
+  const selY2 = selecting ? Math.max(refAreaTop, refAreaBottom) : undefined;
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] font-bold uppercase tracking-wider">
-        <QuadLegend color="oklch(0.78 0.18 115)" label="Leaders (haut-droite)" />
-        <QuadLegend color="oklch(0.65 0.18 240)" label="Bons camarades (haut-gauche)" />
-        <QuadLegend color="oklch(0.72 0.20 45)" label="Individualistes (bas-droite)" />
-        <QuadLegend color="oklch(0.65 0.22 25)" label="En difficulté (bas-gauche)" />
+      <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] font-bold uppercase tracking-wider">
+          <QuadLegend color="oklch(0.78 0.18 115)" label="Leaders (haut-droite)" />
+          <QuadLegend color="oklch(0.65 0.18 240)" label="Bons camarades (haut-gauche)" />
+          <QuadLegend color="oklch(0.72 0.20 45)" label="Individualistes (bas-droite)" />
+          <QuadLegend color="oklch(0.65 0.22 25)" label="En difficulté (bas-gauche)" />
+        </div>
+        {isZoomed && (
+          <button
+            onClick={resetZoom}
+            className="flex items-center gap-1.5 bg-surface border-2 border-ink rounded-lg px-2.5 py-1.5 font-display text-[11px] font-bold uppercase tracking-wider shadow-pop-sm hover:bg-surface-2 transition-colors"
+          >
+            <ZoomOut size={14} />
+            Réinitialiser le zoom
+          </button>
+        )}
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
-        <ScatterChart margin={{ top: 16, right: 24, left: 0, bottom: 24 }}>
+      <ResponsiveContainer width="100%" height={400} className={isSelecting ? "cursor-crosshair" : "cursor-default"}>
+        <ScatterChart
+          margin={{ top: 16, right: 24, left: 0, bottom: 24 }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.18)" />
           <XAxis
             type="number"
             dataKey="displayX"
             name="Dimension Motrice"
-            domain={[0, 4]}
+            domain={xDomain}
             ticks={[0, 1, 2, 3, 4]}
             allowDecimals={false}
             tick={{ fontSize: 11, fontWeight: 700 }}
@@ -373,14 +475,14 @@ function NeedsMatrix({ students, cycle }: Props) {
             type="number"
             dataKey="displayY"
             name="Dimension Socio-Méthodo"
-            domain={[0, 4]}
+            domain={yDomain}
             ticks={[0, 1, 2, 3, 4]}
             allowDecimals={false}
             tick={{ fontSize: 11, fontWeight: 700 }}
             label={{ value: "Socio-Méthodo ↑", angle: -90, position: "insideLeft", fontSize: 11, fontWeight: 700 }}
           />
           <ZAxis range={[120, 120]} />
-          {/* Fond des 4 quadrants (placés AVANT le Scatter pour que les points passent dessus). */}
+          {/* Quadrants */}
           <ReferenceArea x1={meanMotor} x2={4} y1={meanSocio} y2={4} fill="#dcfce7" fillOpacity={0.55} stroke="none"
             label={{ value: "Leaders", position: "insideTopRight", fill: "#15803d", fontSize: 11, fontWeight: 800 }} />
           <ReferenceArea x1={0} x2={meanMotor} y1={meanSocio} y2={4} fill="#dbeafe" fillOpacity={0.55} stroke="none"
@@ -391,6 +493,19 @@ function NeedsMatrix({ students, cycle }: Props) {
             label={{ value: "En difficulté", position: "insideBottomLeft", fill: "#b91c1c", fontSize: 11, fontWeight: 800 }} />
           <ReferenceLine x={meanMotor} stroke="red" strokeDasharray="3 3" label={{ value: `x̄ ${meanMotor}`, fill: "red", fontSize: 10, fontWeight: 700, position: "top" }} />
           <ReferenceLine y={meanSocio} stroke="red" strokeDasharray="3 3" label={{ value: `ȳ ${meanSocio}`, fill: "red", fontSize: 10, fontWeight: 700, position: "right" }} />
+          {/* Zone de sélection */}
+          {selecting && (
+            <ReferenceArea
+              x1={selX1}
+              x2={selX2}
+              y1={selY1}
+              y2={selY2}
+              stroke="#8884d8"
+              strokeOpacity={0.6}
+              fill="#8884d8"
+              fillOpacity={0.2}
+            />
+          )}
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
             content={({ active, payload }) => {
@@ -405,12 +520,7 @@ function NeedsMatrix({ students, cycle }: Props) {
               );
             }}
           />
-          <Scatter
-            name="Élèves"
-            data={points}
-            fill={HIGHLIGHT}
-            shape="circle"
-          />
+          <Scatter name="Élèves" data={points} fill={HIGHLIGHT} shape="circle" />
         </ScatterChart>
       </ResponsiveContainer>
       <p className="text-[11px] text-ink-soft font-semibold uppercase tracking-widest">
