@@ -27,30 +27,43 @@ const tooltipStyle = {
 
 export function ComparativeRadar({ student, classmates, cycle, height = 320 }: Props) {
   const max = getMaxStarsForCycle(cycle) || 4;
-  const data = useMemo(() => {
+
+  const { data, hasClassAvg } = useMemo(() => {
     const cats = CURRICULUM[cycle]?.categories;
-    if (!cats || !student) return [];
-    const peers = Array.isArray(classmates) && classmates.length > 0 ? classmates : [student];
+    if (!cats || !student) return { data: [], hasClassAvg: false };
     const skills = (Object.keys(cats) as DimensionKey[]).flatMap((d) =>
-      cats[d].skills.map((s) => ({ id: s.id, code: s.code, name: s.name })),
+      (cats[d]?.skills ?? []).map((s) => ({ id: s.id, code: s.code, name: s.name })),
     );
-    return skills.map((sk) => {
-      const studentLevel = student.skillStates?.[sk.id] ?? 0;
-      const vals = peers.map((s) => s.skillStates?.[sk.id] ?? 0);
-      const classAvg = vals.length ? round2(avg(vals)) : 0;
+    if (skills.length === 0) return { data: [], hasClassAvg: false };
+
+    const peers = Array.isArray(classmates) ? classmates.filter(Boolean) : [];
+    const canComputeAvg = peers.length > 0;
+
+    const rows = skills.map((sk) => {
+      const studentLevel = Number(student.skillStates?.[sk.id] ?? 0) || 0;
+      let classAvg = 0;
+      if (canComputeAvg) {
+        try {
+          const vals = peers.map((s) => Number(s?.skillStates?.[sk.id] ?? 0) || 0);
+          classAvg = round2(avg(vals));
+        } catch {
+          classAvg = 0;
+        }
+      }
       return {
         subject: sk.code,
         fullName: sk.name,
-        studentLevel: studentLevel ?? 0,
-        classAvg: classAvg ?? 0,
+        studentLevel,
+        classAvg,
       };
     });
+    return { data: rows, hasClassAvg: canComputeAvg };
   }, [student, classmates, cycle]);
 
-  if (data.length === 0) {
+  if (!student || data.length === 0) {
     return (
       <div style={{ height }} className="grid place-items-center text-ink-soft text-xs font-semibold border-2 border-dashed border-ink/20 rounded-xl">
-        Pas encore de données à comparer
+        Pas encore de données à afficher
       </div>
     );
   }
@@ -67,14 +80,16 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
           tick={{ fontSize: 10 }}
           allowDecimals={false}
         />
-        <Radar
-          name="Moyenne classe"
-          dataKey="classAvg"
-          stroke="#9ca3af"
-          fill="none"
-          strokeDasharray="4 4"
-          strokeWidth={2}
-        />
+        {hasClassAvg && (
+          <Radar
+            name="Moyenne classe"
+            dataKey="classAvg"
+            stroke="#9ca3af"
+            fill="none"
+            strokeDasharray="4 4"
+            strokeWidth={2}
+          />
+        )}
         <Radar
           name={student.name}
           dataKey="studentLevel"
