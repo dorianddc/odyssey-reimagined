@@ -76,6 +76,7 @@ const StudentProfile = () => {
   const student = getStudent(classId, studentId);
   const cycle = cls?.cycle ?? "cycle3";
   const classStudents = studentsByClass[classId] ?? [];
+  const isClassLoading = Boolean(cls && !studentsByClass[classId]);
   const rank = useMemo(() => (student ? getRankBadge(student.level) : null), [student]);
 
   const categories = CURRICULUM[cycle].categories;
@@ -130,6 +131,16 @@ const StudentProfile = () => {
     (student?.difficulties || []).forEach((d) => { map[d.skillId] = d; });
     return map;
   }, [student?.difficulties]);
+
+  if (isClassLoading) {
+    return (
+      <main className="min-h-screen grid place-items-center p-8">
+        <div className="pop-card p-8 text-center">
+          <p className="font-display text-3xl">Chargement du profil…</p>
+        </div>
+      </main>
+    );
+  }
 
   if (!cls || !student || !rank) {
     return (
