@@ -26,20 +26,34 @@ const tooltipStyle = {
 } as const;
 
 export function ComparativeRadar({ student, classmates, cycle, height = 320 }: Props) {
-  const max = getMaxStarsForCycle(cycle);
+  const max = getMaxStarsForCycle(cycle) || 4;
   const data = useMemo(() => {
     const cats = CURRICULUM[cycle]?.categories;
-    if (!cats) return [];
+    if (!cats || !student) return [];
+    const peers = Array.isArray(classmates) && classmates.length > 0 ? classmates : [student];
     const skills = (Object.keys(cats) as DimensionKey[]).flatMap((d) =>
       cats[d].skills.map((s) => ({ id: s.id, code: s.code, name: s.name })),
     );
-    return skills.map((sk) => ({
-      subject: sk.code,
-      fullName: sk.name,
-      studentLevel: student.skillStates?.[sk.id] ?? 0,
-      classAvg: round2(avg(classmates.map((s) => s.skillStates?.[sk.id] ?? 0))),
-    }));
+    return skills.map((sk) => {
+      const studentLevel = student.skillStates?.[sk.id] ?? 0;
+      const vals = peers.map((s) => s.skillStates?.[sk.id] ?? 0);
+      const classAvg = vals.length ? round2(avg(vals)) : 0;
+      return {
+        subject: sk.code,
+        fullName: sk.name,
+        studentLevel: studentLevel ?? 0,
+        classAvg: classAvg ?? 0,
+      };
+    });
   }, [student, classmates, cycle]);
+
+  if (data.length === 0) {
+    return (
+      <div style={{ height }} className="grid place-items-center text-ink-soft text-xs font-semibold border-2 border-dashed border-ink/20 rounded-xl">
+        Pas encore de données à comparer
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height={height}>
