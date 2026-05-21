@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/r
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Activity, Brain, Users, Move, Crosshair, Sparkles, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
-import { CURRICULUM, MAX_LEVEL, getRankBadge, getMaxStarsForCycle, getCycleVocab, getProgressPercentage, type Difficulty, type DimensionKey } from "@/data/curriculum";
+import { CURRICULUM, MAX_LEVEL, generateClassStudents, getRankBadge, getMaxStarsForCycle, getCycleVocab, getProgressPercentage, type Difficulty, type DimensionKey } from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
@@ -73,10 +73,11 @@ const StudentProfile = () => {
     setBgm("profile");
   }, [setBgm]);
 
-  const student = getStudent(classId, studentId);
+  const storedClassStudents = studentsByClass[classId];
+  const fallbackClassStudents = useMemo(() => storedClassStudents ? [] : generateClassStudents(classId), [storedClassStudents, classId]);
+  const classStudents = storedClassStudents ?? fallbackClassStudents;
+  const student = getStudent(classId, studentId) ?? classStudents.find((s) => s.id === studentId);
   const cycle = cls?.cycle ?? "cycle3";
-  const classStudents = studentsByClass[classId] ?? [];
-  const isClassLoading = Boolean(cls && !studentsByClass[classId]);
   const rank = useMemo(() => (student ? getRankBadge(student.level) : null), [student]);
 
   const categories = CURRICULUM[cycle].categories;
@@ -131,16 +132,6 @@ const StudentProfile = () => {
     (student?.difficulties || []).forEach((d) => { map[d.skillId] = d; });
     return map;
   }, [student?.difficulties]);
-
-  if (isClassLoading) {
-    return (
-      <main className="min-h-screen grid place-items-center p-8">
-        <div className="pop-card p-8 text-center">
-          <p className="font-display text-3xl">Chargement du profil…</p>
-        </div>
-      </main>
-    );
-  }
 
   if (!cls || !student || !rank) {
     return (
