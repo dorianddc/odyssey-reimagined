@@ -29,6 +29,7 @@ import { useAudio } from "@/lib/audio";
 import { cn } from "@/lib/utils";
 import { type Student } from "@/data/curriculum";
 import { AdvancedChartExplorer } from "@/components/dashboard/AdvancedChartExplorer";
+import { AdvancedAnalytics } from "@/components/dashboard/AdvancedAnalytics";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/dashboard")({
@@ -282,6 +283,14 @@ function DataDashboard() {
 
           {/* Explorateur de données dynamique — remplace l'ancien "Suivi d'apprentissage" */}
           <AdvancedChartExplorer
+            students={students}
+            cycle={cycle}
+            classId={classId}
+            situationHistory={situationHistory}
+          />
+
+          {/* 4 graphiques analytiques avancés (Spaghetti, Heatmap, Radar, Matrice) */}
+          <AdvancedAnalytics
             students={students}
             cycle={cycle}
             classId={classId}
