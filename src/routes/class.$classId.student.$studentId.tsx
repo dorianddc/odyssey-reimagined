@@ -244,7 +244,7 @@ const StudentProfile = () => {
             {/* radar comparatif élève vs moyenne classe */}
             <div className="flex justify-center md:justify-end w-full">
               <div className="w-full max-w-[420px]">
-                <ComparativeRadar student={student} classmates={cls.students} cycle={cycle} height={320} />
+                <ComparativeRadar student={student} classmates={studentsByClass[classId] ?? [student]} cycle={cycle} height={320} />
               </div>
             </div>
           </div>
