@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  Tooltip, Legend, ResponsiveContainer,
+  Tooltip, Legend,
 } from "recharts";
 import { CURRICULUM, type Cycle, type Student, type DimensionKey, getMaxStarsForCycle } from "@/data/curriculum";
 
@@ -71,8 +71,8 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
   }
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <RadarChart data={data} outerRadius="78%">
+    <div className="w-full overflow-visible" style={{ height }}>
+      <RadarChart width={420} height={height} data={data} outerRadius="72%" margin={{ top: 16, right: 28, bottom: 24, left: 28 }}>
         <PolarGrid stroke="oklch(0.5 0 0 / 0.25)" />
         <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontWeight: 700 }} />
         <PolarRadiusAxis
@@ -116,6 +116,6 @@ export function ComparativeRadar({ student, classmates, cycle, height = 320 }: P
         />
         <Legend wrapperStyle={{ fontSize: 12, fontWeight: 700, paddingTop: 8 }} />
       </RadarChart>
-    </ResponsiveContainer>
+    </div>
   );
 }
