@@ -336,7 +336,10 @@ function NeedsMatrix({ students, cycle }: Props) {
     }
     const scoreMoteur = round2(avg(motorIds.map((id) => s.skillStates?.[id] ?? 0)));
     const scoreSocio = round2(avg(socioIds.map((id) => s.skillStates?.[id] ?? 0)));
-    return { id: s.id, name: s.name, gender: s.gender, scoreMoteur, scoreSocio };
+    // Jitter d'affichage pour désuperposer les points (overplotting).
+    const displayX = scoreMoteur + (Math.random() - 0.5) * 0.15;
+    const displayY = scoreSocio + (Math.random() - 0.5) * 0.15;
+    return { id: s.id, name: s.name, gender: s.gender, scoreMoteur, scoreSocio, displayX, displayY };
   }), [students, cycle, isC3]);
 
   const meanMotor = round2(avg(points.map((p) => p.scoreMoteur)));
