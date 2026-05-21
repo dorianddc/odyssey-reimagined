@@ -422,7 +422,7 @@ function NeedsMatrix({ students, cycle }: Props) {
                         tick={{ fontSize: 11, fontWeight: 700 }}
                         label={{ value: "Socio-Méthodo ↑", angle: -90, position: "insideLeft", fontSize: 11, fontWeight: 700 }}
                       />
-                      <ZAxis range={[120, 120]} />
+                      <ZAxis range={[260, 260]} />
                       <ReferenceArea x1={meanMotor} x2={4} y1={meanSocio} y2={4} fill="#dcfce7" fillOpacity={0.55} stroke="none"
                         label={{ value: "Leaders", position: "insideTopRight", fill: "#15803d", fontSize: 11, fontWeight: 800 }} />
                       <ReferenceArea x1={0} x2={meanMotor} y1={meanSocio} y2={4} fill="#dbeafe" fillOpacity={0.55} stroke="none"
