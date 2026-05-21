@@ -361,8 +361,9 @@ function NeedsMatrix({ students, cycle }: Props) {
     }
     const scoreMoteur = round2(avg(motorIds.map((id) => s.skillStates?.[id] ?? 0)));
     const scoreSocio = round2(avg(socioIds.map((id) => s.skillStates?.[id] ?? 0)));
-    const displayX = scoreMoteur + hashJitter(s.id, 7);
-    const displayY = scoreSocio + hashJitter(s.id, 13);
+    const clamp = (n: number) => Math.max(0.05, Math.min(3.95, n));
+    const displayX = clamp(scoreMoteur + hashJitter(s.id, 7));
+    const displayY = clamp(scoreSocio + hashJitter(s.id, 13));
     return { id: s.id, name: s.name, gender: s.gender, scoreMoteur, scoreSocio, displayX, displayY };
   }), [students, cycle, isC3]);
 
