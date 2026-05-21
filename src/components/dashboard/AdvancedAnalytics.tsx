@@ -361,7 +361,7 @@ function NeedsMatrix({ students, cycle }: Props) {
           <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.18)" />
           <XAxis
             type="number"
-            dataKey="scoreMoteur"
+            dataKey="displayX"
             name="Dimension Motrice"
             domain={[0, 4]}
             ticks={[0, 1, 2, 3, 4]}
@@ -371,7 +371,7 @@ function NeedsMatrix({ students, cycle }: Props) {
           />
           <YAxis
             type="number"
-            dataKey="scoreSocio"
+            dataKey="displayY"
             name="Dimension Socio-Méthodo"
             domain={[0, 4]}
             ticks={[0, 1, 2, 3, 4]}
@@ -380,17 +380,19 @@ function NeedsMatrix({ students, cycle }: Props) {
             label={{ value: "Socio-Méthodo ↑", angle: -90, position: "insideLeft", fontSize: 11, fontWeight: 700 }}
           />
           <ZAxis range={[120, 120]} />
+          {/* Fond des 4 quadrants (placés AVANT le Scatter pour que les points passent dessus). */}
+          <ReferenceArea x1={meanMotor} x2={4} y1={meanSocio} y2={4} fill="#dcfce7" fillOpacity={0.55} stroke="none"
+            label={{ value: "Leaders", position: "insideTopRight", fill: "#15803d", fontSize: 11, fontWeight: 800 }} />
+          <ReferenceArea x1={0} x2={meanMotor} y1={meanSocio} y2={4} fill="#dbeafe" fillOpacity={0.55} stroke="none"
+            label={{ value: "Bons camarades", position: "insideTopLeft", fill: "#1d4ed8", fontSize: 11, fontWeight: 800 }} />
+          <ReferenceArea x1={meanMotor} x2={4} y1={0} y2={meanSocio} fill="#fef08a" fillOpacity={0.55} stroke="none"
+            label={{ value: "Individualistes", position: "insideBottomRight", fill: "#a16207", fontSize: 11, fontWeight: 800 }} />
+          <ReferenceArea x1={0} x2={meanMotor} y1={0} y2={meanSocio} fill="#fee2e2" fillOpacity={0.55} stroke="none"
+            label={{ value: "En difficulté", position: "insideBottomLeft", fill: "#b91c1c", fontSize: 11, fontWeight: 800 }} />
           <ReferenceLine x={meanMotor} stroke="red" strokeDasharray="3 3" label={{ value: `x̄ ${meanMotor}`, fill: "red", fontSize: 10, fontWeight: 700, position: "top" }} />
           <ReferenceLine y={meanSocio} stroke="red" strokeDasharray="3 3" label={{ value: `ȳ ${meanSocio}`, fill: "red", fontSize: 10, fontWeight: 700, position: "right" }} />
           <Tooltip
             cursor={{ strokeDasharray: "3 3" }}
-            contentStyle={tooltipStyle}
-            labelStyle={{ color: "oklch(0.95 0 0)", fontWeight: 800 }}
-            formatter={(value: number, name: string) => {
-              if (name === "Dimension Motrice") return [`${value} / 4`, "Score moteur"];
-              if (name === "Dimension Socio-Méthodo") return [`${value} / 4`, "Score socio-méthodo"];
-              return [value, name];
-            }}
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
               const p = payload[0].payload as typeof points[number];
