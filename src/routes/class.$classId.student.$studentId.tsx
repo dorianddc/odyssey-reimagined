@@ -7,7 +7,7 @@ import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
-import { FullSpectrumRadar } from "@/components/game/FullSpectrumRadar";
+import { ComparativeRadar } from "@/components/game/ComparativeRadar";
 import { StarMeter } from "@/components/game/StarMeter";
 import { LevelUpOverlay } from "@/components/game/LevelUpOverlay";
 import {
