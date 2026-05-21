@@ -19,7 +19,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ZoomOut } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 
 interface Props {
   students: Student[];
