@@ -318,7 +318,8 @@ function CompareRadar({ students, cycle }: Props) {
 function hashJitter(id: string, salt: number) {
   let h = salt;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return ((h % 1000) / 1000 - 0.5) * 0.15;
+  // Amplitude ±0.32 → grappes bien lisibles autour de chaque note entière sans sortir du domaine 0..4.
+  return ((h % 1000) / 1000 - 0.5) * 0.64;
 }
 
 function ZoomControls() {
