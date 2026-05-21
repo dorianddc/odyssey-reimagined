@@ -7,7 +7,7 @@ import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
 import { PopButton } from "@/components/game/PopButton";
-import { FullSpectrumRadar } from "@/components/game/FullSpectrumRadar";
+import { ComparativeRadar } from "@/components/game/ComparativeRadar";
 import { StarMeter } from "@/components/game/StarMeter";
 import { LevelUpOverlay } from "@/components/game/LevelUpOverlay";
 import {
@@ -57,7 +57,7 @@ const StudentProfile = () => {
     }
     navigate({ to: "/class/$classId/parcours", params: { classId } });
   };
-  const { classes, ensureClass, getStudent, bumpSkill, removeStudent, pendingLevelUp, clearLevelUp } = useAppStore();
+  const { classes, studentsByClass, ensureClass, getStudent, bumpSkill, removeStudent, pendingLevelUp, clearLevelUp } = useAppStore();
   const { setBgm, playSfx } = useAudio();
   const cls = classes.find((c) => c.id === classId);
   const [burstKeys, setBurstKeys] = useState<Record<string, number>>({});
@@ -241,9 +241,11 @@ const StudentProfile = () => {
               </div>
             </div>
 
-            {/* radar */}
-            <div className="flex justify-center md:justify-end">
-              <FullSpectrumRadar skillStates={student.skillStates} cycle={cycle} size={300} />
+            {/* radar comparatif élève vs moyenne classe */}
+            <div className="flex justify-center md:justify-end w-full">
+              <div className="w-full max-w-[420px]">
+                <ComparativeRadar student={student} classmates={studentsByClass[classId] ?? [student]} cycle={cycle} height={320} />
+              </div>
             </div>
           </div>
         </div>
