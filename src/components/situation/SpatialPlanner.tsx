@@ -76,14 +76,33 @@ export function CourtConfig({
   capacity: number; setCapacity: (n: number) => void;
   durationMin: number; setDurationMin: (n: number) => void;
 }) {
+  const presets = [5, 10, 15, 20];
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <NumStepper value={durationMin} set={setDurationMin} min={1} max={60} label="Durée (min)" />
+      <div className="flex items-center gap-2">
+        <NumStepper value={durationMin} set={setDurationMin} min={1} max={60} label="Durée (min)" />
+        <div className="inline-flex items-center gap-1">
+          {presets.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setDurationMin(p)}
+              className={cn(
+                "px-2 py-1 rounded-lg border-[2.5px] border-ink font-display text-[10px] tracking-widest shadow-pop-sm transition-all hover:-translate-y-0.5 active:translate-y-[2px]",
+                durationMin === p ? "bg-ink text-surface" : "bg-surface hover:bg-surface-2"
+              )}
+            >
+              {p}′
+            </button>
+          ))}
+        </div>
+      </div>
       <NumStepper value={courtCount} set={setCourtCount} min={1} max={8} label="Terrains" />
       <NumStepper value={capacity} set={setCapacity} min={1} max={4} label="Élèves / demi-terrain" />
     </div>
   );
 }
+
 
 /* ============================ COURT VISUAL ============================ */
 function CourtVisual({
