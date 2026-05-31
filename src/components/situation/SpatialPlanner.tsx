@@ -389,14 +389,16 @@ export function EvalCard({
   const pct = Math.round((stars / maxStars) * 100);
   return (
     <div className={cn(
-      "w-full pop-card p-2.5 flex items-center gap-3",
+      "w-full pop-card p-2 flex items-center gap-2",
       moved !== 0 && "ring-2 ring-secondary/60"
     )}>
-      <AvatarBlob name={student.name} hue={student.avatarHue} size={42} rank="rookie" />
+      <AvatarBlob name={student.name} hue={student.avatarHue} size={34} rank="rookie" />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="font-display text-sm leading-tight truncate">{student.name}</p>
-          <span className="ml-auto text-[9px] font-bold uppercase tracking-wider text-ink-soft shrink-0">N{student.level}</span>
+        <div className="flex items-center gap-1.5">
+          <p className="font-display text-[13px] leading-tight break-words flex-1 min-w-0">{student.name}</p>
+          <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-ink text-surface font-display text-[10px] tabular-nums">
+            N{stars}
+          </span>
         </div>
         <div className="h-1.5 mt-1 rounded-full bg-surface-2 border border-ink/20 overflow-hidden">
           <div className="h-full bg-gradient-sun transition-[width]" style={{ width: `${pct}%` }} />
@@ -415,11 +417,11 @@ export function EvalCard({
       </div>
       <div className="flex flex-col gap-1 shrink-0">
         <button onClick={onPlus} disabled={stars >= maxStars}
-          className="w-11 h-11 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm grid place-items-center hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:hover:translate-y-0">
-          <Plus size={20} strokeWidth={3.5} />
+          className="w-10 h-10 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm grid place-items-center hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:hover:translate-y-0">
+          <Plus size={18} strokeWidth={3.5} />
         </button>
         <button onClick={onMinus} disabled={stars <= 0}
-          className="w-11 h-7 rounded-lg border-[2px] border-ink bg-surface grid place-items-center hover:bg-hot hover:text-hot-foreground disabled:opacity-40">
+          className="w-10 h-7 rounded-lg border-[2px] border-ink bg-surface grid place-items-center hover:bg-hot hover:text-hot-foreground disabled:opacity-40">
           <Minus size={14} strokeWidth={3.5} />
         </button>
       </div>
@@ -462,9 +464,16 @@ export function LiveCourtGrid({
             <CourtVisual key={c} courtIdx={c} count={total} size="lg"
               renderZone={(z) => {
                 const list = byZone.get(`${c}:${z}`) ?? [];
+                const isBottom = z === "BL" || z === "BR";
                 return (
-                  <div className="relative h-full p-2 flex flex-col gap-1.5 overflow-auto">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-ink-soft/70">{zoneLabel(z)}</span>
+                  <div className={cn(
+                    "relative h-full p-2 flex flex-col gap-1.5 overflow-auto",
+                    isBottom ? "justify-end" : "justify-start"
+                  )}>
+                    <span className={cn(
+                      "text-[9px] font-bold uppercase tracking-widest text-ink-soft/70",
+                      isBottom && "order-last"
+                    )}>{zoneLabel(z)}</span>
                     <div className="flex flex-col gap-1.5">
                       {list.map((s) => <div key={s.id}>{renderCard(s)}</div>)}
                     </div>
@@ -475,6 +484,7 @@ export function LiveCourtGrid({
                 );
               }}
             />
+
           );
         })}
       </div>
