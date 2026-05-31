@@ -378,7 +378,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
 
       return outcome;
     },
-    [classes]
+    [classes, situationHistory]
   );
 
   const setLevelUpSuspended = useCallback((suspended: boolean) => {
