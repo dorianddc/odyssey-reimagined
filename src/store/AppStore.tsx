@@ -152,6 +152,68 @@ const loadStudents = (classes: ClassConfig[]): Record<string, Student[]> => {
   }
 };
 
+const hasTwoConsecutiveStagnationsAtLevel = (
+  history: SituationRecord[],
+  classId: string,
+  studentId: string,
+  skillId: string,
+  level: number,
+) => {
+  let consecutive = 0;
+  const chronological = history
+    .filter((r) => r.classId === classId && r.skillIds.includes(skillId))
+    .slice()
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  for (const past of chronological) {
+    const didProgress = past.progressed.some((p) => p.studentId === studentId && p.skillId === skillId);
+    if (didProgress) {
+      consecutive = 0;
+      continue;
+    }
+
+    const didStagnateSameLevel = past.stagnated.some(
+      (p) => p.studentId === studentId && p.skillId === skillId && p.level === level,
+    );
+    consecutive = didStagnateSameLevel ? consecutive + 1 : 0;
+  }
+
+  return consecutive >= 2;
+};
+
+const normalizeDifficultiesByHistory = (
+  studentsByClass: Record<string, Student[]>,
+  classes: ClassConfig[],
+  history: SituationRecord[],
+): Record<string, Student[]> => {
+  const cycleByClass = new Map(classes.map((c) => [c.id, c.cycle] as const));
+  return Object.fromEntries(
+    Object.entries(studentsByClass).map(([classId, students]) => {
+      const cycle = cycleByClass.get(classId) ?? (classId.startsWith("6") ? "cycle3" : "cycle4");
+      const nextStudents = students.map((student) => {
+        const sanitized = sanitizeStudentData(student, cycle);
+        const difficulties = (sanitized.difficulties || [])
+          .map((difficulty) => ({
+            ...difficulty,
+            currentLevel: sanitized.skillStates?.[difficulty.skillId] ?? 0,
+          }))
+          .filter((difficulty) => {
+            if (difficulty.currentLevel >= MASTERY_THRESHOLD) return false;
+            return hasTwoConsecutiveStagnationsAtLevel(
+              history,
+              classId,
+              sanitized.id,
+              difficulty.skillId,
+              difficulty.currentLevel,
+            );
+          });
+        return { ...sanitized, difficulties };
+      });
+      return [classId, nextStudents];
+    }),
+  );
+};
+
 const slugifyClassName = (name: string, existing: string[]): string => {
   const base = name
     .normalize("NFD")
@@ -173,6 +235,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   const [situationHistory, setSituationHistory] = useState<SituationRecord[]>(() => loadHistory());
   const [pendingLevelUp, setPendingLevelUp] = useState<LevelUpEvent | null>(null);
   const levelUpSuspendedRef = useRef(false);
+  const normalizedStoredDifficultiesRef = useRef(false);
 
   // persist
   useEffect(() => {
@@ -184,6 +247,12 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     try { localStorage.setItem(LS_HISTORY, JSON.stringify(situationHistory)); } catch { /* noop */ }
   }, [situationHistory]);
+
+  useEffect(() => {
+    if (normalizedStoredDifficultiesRef.current) return;
+    normalizedStoredDifficultiesRef.current = true;
+    setStudentsByClass((prev) => normalizeDifficultiesByHistory(prev, classes, situationHistory));
+  }, [classes, situationHistory]);
 
   const ensureClass = useCallback((classId: string) => {
     setStudentsByClass((prev) => {
@@ -309,7 +378,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
               // Progression sur ce skill → on retire toute alerte existante.
               // Pas de nouvelle pastille tant que l'élève progresse, même < mastery.
               s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
-            } else if (afterStars < MASTERY_THRESHOLD) {
+            } else if (afterStars === beforeStars && afterStars < MASTERY_THRESHOLD) {
               // Stagnation détectée sur ce skill.
               outcome.stagnated.push({
                 studentId: s.id, studentName: s.name, skillId,
@@ -323,7 +392,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
                 if (!past.skillIds.includes(skillId)) continue;
                 const didProgress = past.progressed.some((p) => p.studentId === s.id && p.skillId === skillId);
                 if (didProgress) break;
-                const didStagnate = past.stagnated.some((p) => p.studentId === s.id && p.skillId === skillId);
+                const didStagnate = past.stagnated.some((p) => p.studentId === s.id && p.skillId === skillId && p.level === afterStars);
                 if (didStagnate) consecutive++;
                 else break;
               }
