@@ -52,7 +52,7 @@ const BIOME_RANGES: { key: BiomeKey; min: number; max: number; color: string }[]
   { key: "Champion",   min: 13, max: 17, color: "oklch(0.82 0.18 95)"  },
   { key: "Olympe",     min: 18, max: 22, color: "oklch(0.78 0.14 320)" },
 ];
-const countDifficulties = (s: Student) => (s.difficulties?.length ?? 0) + (s.stagnations?.length ?? 0);
+const countDifficulties = (s: Student) => s.difficulties?.length ?? 0;
 const lastTierFor = (lvl: number): string => {
   const b = BIOME_RANGES.find((b) => lvl >= b.min && lvl <= b.max);
   return b ? `${b.key} (Nv ${b.min}-${b.max})` : "—";
