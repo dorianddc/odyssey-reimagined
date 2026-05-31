@@ -29,19 +29,7 @@ interface Props {
   situationHistory: SituationRecord[];
 }
 
-// Palette graphique stable (8 contenus max en cycle3).
-const PALETTE = [
-  "oklch(0.65 0.22 25)",   // rouge
-  "oklch(0.65 0.18 240)",  // bleu
-  "oklch(0.72 0.20 45)",   // orange
-  "oklch(0.78 0.18 115)",  // jaune-vert
-  "oklch(0.62 0.20 300)",  // violet
-  "oklch(0.72 0.18 350)",  // rose
-  "oklch(0.7 0.18 175)",   // teal
-  "oklch(0.55 0.2 140)",   // vert foncé
-];
 const HIGHLIGHT = "#3b82f6";
-const MUTED = "oklch(0.5 0 0)";
 
 // ---------- helpers communs --------------------------------------------------
 const skillList = (cycle: Cycle) => {
