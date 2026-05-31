@@ -389,41 +389,51 @@ export function EvalCard({
   const pct = Math.round((stars / maxStars) * 100);
   return (
     <div className={cn(
-      "w-full pop-card p-2 flex items-center gap-2",
+      "w-full pop-card p-2 flex flex-col gap-2",
       moved !== 0 && "ring-2 ring-secondary/60"
     )}>
-      <AvatarBlob name={student.name} hue={student.avatarHue} size={34} rank="rookie" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <p className="font-display text-[13px] leading-tight break-words flex-1 min-w-0">{student.name}</p>
-          <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-ink text-surface font-display text-[10px] tabular-nums">
+      {/* LIGNE 1 : EN-TÊTE (Identité) */}
+      <div className="flex flex-row items-center gap-2">
+        <AvatarBlob name={student.name} hue={student.avatarHue} size={34} rank="rookie" />
+        <span className="font-display text-[13px] font-bold leading-tight whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0">
+          {student.name}
+        </span>
+      </div>
+
+      {/* LIGNE 2 : CORPS (Infos + Actions) */}
+      <div className="flex flex-row justify-between items-center w-full">
+        {/* Zone Gauche — Info */}
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
+          <span className="self-start shrink-0 px-1.5 py-0.5 rounded-md bg-ink text-surface font-display text-[10px] tabular-nums">
             N{stars}
           </span>
+          <div className="h-1.5 rounded-full bg-surface-2 border border-ink/20 overflow-hidden">
+            <div className="h-full bg-gradient-sun transition-[width]" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="flex items-center gap-0.5">
+            {Array.from({ length: maxStars }).map((_, i) => (
+              <span key={i} className={cn("w-2 h-2 rounded-full border-[1.5px] border-ink",
+                i < stars ? "bg-gradient-sun" : "bg-surface-2")} />
+            ))}
+            {moved !== 0 && (
+              <span className={cn("ml-1 text-[10px] font-bold", moved > 0 ? "text-secondary" : "text-hot")}>
+                {moved > 0 ? `+${moved}` : moved}
+              </span>
+            )}
+          </div>
         </div>
-        <div className="h-1.5 mt-1 rounded-full bg-surface-2 border border-ink/20 overflow-hidden">
-          <div className="h-full bg-gradient-sun transition-[width]" style={{ width: `${pct}%` }} />
+
+        {/* Zone Droite — Actions */}
+        <div className="flex flex-col gap-1 shrink-0 ml-2">
+          <button onClick={onPlus} disabled={stars >= maxStars}
+            className="w-10 h-10 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm grid place-items-center hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:hover:translate-y-0">
+            <Plus size={18} strokeWidth={3.5} />
+          </button>
+          <button onClick={onMinus} disabled={stars <= 0}
+            className="w-10 h-7 rounded-lg border-[2px] border-ink bg-surface grid place-items-center hover:bg-hot hover:text-hot-foreground disabled:opacity-40">
+            <Minus size={14} strokeWidth={3.5} />
+          </button>
         </div>
-        <div className="flex items-center gap-0.5 mt-1">
-          {Array.from({ length: maxStars }).map((_, i) => (
-            <span key={i} className={cn("w-2 h-2 rounded-full border-[1.5px] border-ink",
-              i < stars ? "bg-gradient-sun" : "bg-surface-2")} />
-          ))}
-          {moved !== 0 && (
-            <span className={cn("ml-1 text-[10px] font-bold", moved > 0 ? "text-secondary" : "text-hot")}>
-              {moved > 0 ? `+${moved}` : moved}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex flex-col gap-1 shrink-0">
-        <button onClick={onPlus} disabled={stars >= maxStars}
-          className="w-10 h-10 rounded-xl border-[2.5px] border-ink bg-primary text-primary-foreground shadow-pop-sm grid place-items-center hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-none disabled:opacity-40 disabled:hover:translate-y-0">
-          <Plus size={18} strokeWidth={3.5} />
-        </button>
-        <button onClick={onMinus} disabled={stars <= 0}
-          className="w-10 h-7 rounded-lg border-[2px] border-ink bg-surface grid place-items-center hover:bg-hot hover:text-hot-foreground disabled:opacity-40">
-          <Minus size={14} strokeWidth={3.5} />
-        </button>
       </div>
     </div>
   );
