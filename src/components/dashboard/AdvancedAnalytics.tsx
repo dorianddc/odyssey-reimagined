@@ -362,21 +362,19 @@ export function AdvancedAnalytics(props: Props) {
   return (
     <div className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop p-5">
       <h3 className="font-display text-lg md:text-xl tracking-wide mb-1">
-        Analyses avancées — 4 visualisations diagnostiques
+        Analyses avancées — 3 visualisations diagnostiques
       </h3>
       <p className="text-[11px] text-ink-soft font-semibold mb-4 uppercase tracking-widest">
         Échelle stricte 0 → 4 (palier d'acquisition). Conçu pour PC / tablette paysage.
       </p>
 
-      <Tabs defaultValue="spaghetti" className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full h-auto bg-surface-2 border-[2.5px] border-ink rounded-xl p-1 mb-4">
-          <TabsTrigger value="spaghetti" className={tabCls}>1 · Spaghetti</TabsTrigger>
-          <TabsTrigger value="heatmap" className={tabCls}>2 · Heatmap</TabsTrigger>
-          <TabsTrigger value="radar" className={tabCls}>3 · Radar</TabsTrigger>
-          <TabsTrigger value="matrix" className={tabCls}>4 · Matrice</TabsTrigger>
+      <Tabs defaultValue="heatmap" className="w-full">
+        <TabsList className="grid grid-cols-3 w-full h-auto bg-surface-2 border-[2.5px] border-ink rounded-xl p-1 mb-4">
+          <TabsTrigger value="heatmap" className={tabCls}>1 · Heatmap</TabsTrigger>
+          <TabsTrigger value="radar" className={tabCls}>2 · Radar</TabsTrigger>
+          <TabsTrigger value="matrix" className={tabCls}>3 · Matrice</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="spaghetti"><SpaghettiChart {...props} /></TabsContent>
         <TabsContent value="heatmap"><HeatmapTable {...props} /></TabsContent>
         <TabsContent value="radar"><CompareRadar {...props} /></TabsContent>
         <TabsContent value="matrix"><NeedsMatrix {...props} /></TabsContent>
