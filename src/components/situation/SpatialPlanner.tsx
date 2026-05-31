@@ -452,27 +452,33 @@ export function LiveCourtGrid({
 
   return (
     <div className="space-y-4">
-      {Array.from({ length: courtCount }).map((_, c) => {
-        const total = ZONES.reduce((n, z) => n + (byZone.get(`${c}:${z}`)?.length ?? 0), 0);
-        return (
-          <CourtVisual key={c} courtIdx={c} count={total} minHeight="min-h-[260px]"
-            renderZone={(z) => {
-              const list = byZone.get(`${c}:${z}`) ?? [];
-              return (
-                <div className="relative h-full p-3 flex flex-col gap-2">
-                  <span className="absolute top-1 left-2 text-[9px] font-bold uppercase tracking-widest text-ink-soft/60">{zoneLabel(z)}</span>
-                  <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-2">
-                    {list.map((s) => <div key={s.id}>{renderCard(s)}</div>)}
+      <div className={cn(
+        "grid gap-4",
+        courtCount === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+      )}>
+        {Array.from({ length: courtCount }).map((_, c) => {
+          const total = ZONES.reduce((n, z) => n + (byZone.get(`${c}:${z}`)?.length ?? 0), 0);
+          return (
+            <CourtVisual key={c} courtIdx={c} count={total} size="lg"
+              renderZone={(z) => {
+                const list = byZone.get(`${c}:${z}`) ?? [];
+                return (
+                  <div className="relative h-full p-2 flex flex-col gap-1.5 overflow-auto">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-ink-soft/70">{zoneLabel(z)}</span>
+                    <div className="flex flex-col gap-1.5">
+                      {list.map((s) => <div key={s.id}>{renderCard(s)}</div>)}
+                    </div>
+                    {list.length === 0 && (
+                      <span className="m-auto text-[10px] font-semibold text-ink-soft/40">— vide —</span>
+                    )}
                   </div>
-                  {list.length === 0 && (
-                    <span className="m-auto text-[10px] font-semibold text-ink-soft/50">— vide —</span>
-                  )}
-                </div>
-              );
-            }}
-          />
-        );
-      })}
+                );
+              }}
+            />
+          );
+        })}
+      </div>
+
       {unassigned.length > 0 && (
         <div className="pop-card p-3">
           <div className="flex items-center gap-2 mb-2">
