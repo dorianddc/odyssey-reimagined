@@ -464,9 +464,16 @@ export function LiveCourtGrid({
             <CourtVisual key={c} courtIdx={c} count={total} size="lg"
               renderZone={(z) => {
                 const list = byZone.get(`${c}:${z}`) ?? [];
+                const isBottom = z === "BL" || z === "BR";
                 return (
-                  <div className="relative h-full p-2 flex flex-col gap-1.5 overflow-auto">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-ink-soft/70">{zoneLabel(z)}</span>
+                  <div className={cn(
+                    "relative h-full p-2 flex flex-col gap-1.5 overflow-auto",
+                    isBottom ? "justify-end" : "justify-start"
+                  )}>
+                    <span className={cn(
+                      "text-[9px] font-bold uppercase tracking-widest text-ink-soft/70",
+                      isBottom && "order-last"
+                    )}>{zoneLabel(z)}</span>
                     <div className="flex flex-col gap-1.5">
                       {list.map((s) => <div key={s.id}>{renderCard(s)}</div>)}
                     </div>
@@ -477,6 +484,7 @@ export function LiveCourtGrid({
                 );
               }}
             />
+
           );
         })}
       </div>
