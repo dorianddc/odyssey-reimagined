@@ -189,15 +189,25 @@ function ZoneDroppable({
 /* ============================ SETUP PLANNER ============================ */
 export function SpatialSetup({
   students, courtCount, capacity, assignments, setAssignments,
+  getDisplayLevel, getSortValue, showSmartGroups = true,
 }: {
   students: Student[];
   courtCount: number;
   capacity: number;
   assignments: Assignments;
   setAssignments: (a: Assignments) => void;
+  /** Renvoie le label de niveau à afficher sur la pastille (ex "N3", "NÉ"). */
+  getDisplayLevel?: (s: Student) => string;
+  /** Renvoie une valeur numérique utilisée pour le tri intelligent. */
+  getSortValue?: (s: Student) => number;
+  /** Affiche/masque les boutons Homogène / Hétérogène. */
+  showSmartGroups?: boolean;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const labelOf = (s: Student) => getDisplayLevel?.(s) ?? `N${s.level}`;
+  const valueOf = (s: Student) => getSortValue?.(s) ?? s.level;
 
   const assignedIds = new Set(Object.keys(assignments));
   const reserve = students.filter((s) => !assignedIds.has(s.id));
@@ -253,16 +263,37 @@ export function SpatialSetup({
     setAssignments(next);
   };
 
+  const allSlots = () => {
+    const slots: { court: number; zone: Zone }[] = [];
+    for (let c = 0; c < courtCount; c++) for (const z of ZONES) for (let k = 0; k < capacity; k++) slots.push({ court: c, zone: z });
+    return slots;
+  };
+
   const fillHomogeneous = () => {
     const next: Assignments = {};
-    const sorted = [...students].sort((a, b) => b.level - a.level);
-    let i = 0;
-    for (let c = 0; c < courtCount && i < sorted.length; c++) {
+    const sorted = [...students].sort((a, b) => valueOf(b) - valueOf(a));
+    const slots = allSlots();
+    sorted.slice(0, slots.length).forEach((s, i) => { next[s.id] = slots[i]; });
+    setAssignments(next);
+  };
+
+  const fillHeterogeneous = () => {
+    const next: Assignments = {};
+    const sorted = [...students].sort((a, b) => valueOf(b) - valueOf(a));
+    const groupCount = courtCount * ZONES.length; // chaque demi-terrain = un groupe
+    const groups: Student[][] = Array.from({ length: groupCount }, () => []);
+    // Distribution en serpentin pour équilibrer les niveaux entre les groupes.
+    sorted.forEach((s, i) => {
+      const row = Math.floor(i / groupCount);
+      const col = i % groupCount;
+      const idx = row % 2 === 0 ? col : groupCount - 1 - col;
+      if (groups[idx].length < capacity) groups[idx].push(s);
+    });
+    let g = 0;
+    for (let c = 0; c < courtCount; c++) {
       for (const z of ZONES) {
-        for (let r = 0; r < capacity && i < sorted.length; r++) {
-          next[sorted[i].id] = { court: c, zone: z };
-          i++;
-        }
+        for (const s of groups[g] ?? []) next[s.id] = { court: c, zone: z };
+        g++;
       }
     }
     setAssignments(next);
@@ -281,7 +312,7 @@ export function SpatialSetup({
           <span className="font-display text-xs uppercase tracking-widest">Réserve · {reserve.length}</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {reserve.map((s) => <DraggablePill key={s.id} student={s} />)}
+          {reserve.map((s) => <DraggablePill key={s.id} student={s} levelLabel={labelOf(s)} />)}
           {reserve.length === 0 && <span className="text-xs text-ink-soft">Tous placés ✓</span>}
         </div>
         <div className="border-t-2 border-dashed border-ink/15 pt-2 mt-1 flex flex-wrap gap-1.5">
@@ -289,15 +320,28 @@ export function SpatialSetup({
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-[2.5px] border-ink bg-secondary text-secondary-foreground font-display text-[10px] uppercase tracking-widest shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px]">
             <Shuffle size={12} strokeWidth={3} /> Aléatoire
           </button>
-          <button onClick={fillHomogeneous}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-[2.5px] border-ink bg-primary text-primary-foreground font-display text-[10px] uppercase tracking-widest shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px]">
-            <Wand2 size={12} strokeWidth={3} /> Homogène
-          </button>
+          {showSmartGroups && (
+            <>
+              <button onClick={fillHomogeneous}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-[2.5px] border-ink bg-primary text-primary-foreground font-display text-[10px] uppercase tracking-widest shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px]">
+                <Wand2 size={12} strokeWidth={3} /> Homogène
+              </button>
+              <button onClick={fillHeterogeneous}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-[2.5px] border-ink bg-accent text-accent-foreground font-display text-[10px] uppercase tracking-widest shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px]">
+                <Wand2 size={12} strokeWidth={3} /> Hétérogène
+              </button>
+            </>
+          )}
           <button onClick={() => setAssignments({})}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-[2.5px] border-ink bg-surface font-display text-[10px] uppercase tracking-widest shadow-pop-sm hover:-translate-y-0.5 active:translate-y-[2px]">
             <Trash2 size={12} strokeWidth={3} /> Vider
           </button>
         </div>
+        {!showSmartGroups && (
+          <p className="text-[10px] font-semibold text-ink-soft leading-snug">
+            Les groupes Homogène / Hétérogène ne sont disponibles que pour un contenu Technique, Déplacement ou Tactique.
+          </p>
+        )}
       </aside>
     );
   };
@@ -308,15 +352,18 @@ export function SpatialSetup({
     <DndContext sensors={sensors} onDragStart={(e) => setActiveId(e.active.id.toString())} onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-4 items-start">
         <ReserveDroppable />
-        <div className="space-y-3">
+        <div className={cn(
+          "grid gap-3",
+          courtCount === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+        )}>
           {Array.from({ length: courtCount }).map((_, c) => {
             const total = ZONES.reduce((n, z) => n + (byZone.get(`${c}:${z}`)?.length ?? 0), 0);
             return (
-              <CourtVisual key={c} courtIdx={c} count={total}
+              <CourtVisual key={c} courtIdx={c} count={total} size="sm"
                 renderZone={(z) => (
                   <ZoneDroppable id={`court:${c}:${z}`} label={zoneLabel(z)}>
                     {(byZone.get(`${c}:${z}`) ?? []).map((s) => (
-                      <div key={s.id}><DraggablePill student={s} /></div>
+                      <div key={s.id}><DraggablePill student={s} levelLabel={labelOf(s)} /></div>
                     ))}
                   </ZoneDroppable>
                 )}
@@ -325,10 +372,11 @@ export function SpatialSetup({
           })}
         </div>
       </div>
-      <DragOverlay>{active ? <StudentPill student={active} dragging /> : null}</DragOverlay>
+      <DragOverlay>{active ? <StudentPill student={active} dragging levelLabel={labelOf(active)} /> : null}</DragOverlay>
     </DndContext>
   );
 }
+
 
 /* ============================ EVAL CARD (LIVE) ============================ */
 export function EvalCard({
