@@ -103,7 +103,31 @@ function SituationMode() {
 
   // ------- SETUP -------
   const toggleSkill = (id: string) =>
-    setSelectedSkills((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelectedSkills((prev) => {
+      const isOn = prev.includes(id);
+      if (isOn) {
+        if (focusSkillId === id) setFocusSkillId(null);
+        return prev.filter((x) => x !== id);
+      }
+      setFocusSkillId(id);
+      return [...prev, id];
+    });
+
+  const focusSkill = allSkills.find((s) => s.id === focusSkillId) ?? null;
+  const MOTOR_SECTORS = new Set<DimensionKey>(["moteur", "technique", "deplacement", "tactique"]);
+  const focusIsMotor = focusSkill ? MOTOR_SECTORS.has(focusSkill.dimension) : false;
+  const showSmartGroups = !!focusSkill && focusIsMotor;
+
+  const displayLevel = (s: Student) => {
+    if (!focusSkillId) return `N${s.level}`;
+    const v = s.skillStates[focusSkillId] ?? 0;
+    return v === 0 ? "NÉ" : `N${v}`;
+  };
+  const sortValue = (s: Student) => {
+    if (!focusSkillId) return s.level;
+    return s.skillStates[focusSkillId] ?? 0;
+  };
+
 
   const startSituation = () => {
     if (!selectedSkills.length) return;
