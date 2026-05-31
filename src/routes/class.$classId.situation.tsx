@@ -295,6 +295,20 @@ function SituationMode() {
               <div>
                 <h2 className="font-display text-2xl leading-tight">Gymnase virtuel</h2>
                 <p className="text-xs font-semibold text-ink-soft">Glisse chaque élève dans un demi-terrain, ou utilise la baguette magique.</p>
+                {focusSkill ? (
+                  <p className="mt-1 text-[11px] font-bold uppercase tracking-widest">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground border-[2px] border-ink">
+                      Focus · {focusSkill.code} — {focusSkill.name}
+                    </span>
+                    <span className="ml-2 normal-case font-semibold text-ink-soft">
+                      Niveau affiché = acquisition de ce contenu (0 à 4).
+                    </span>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[11px] font-semibold text-ink-soft">
+                    Niveau affiché = niveau global. Clique sur un contenu pour cibler son acquisition.
+                  </p>
+                )}
               </div>
               <CourtConfig
                 courtCount={courtCount} setCourtCount={setCourtCount}
@@ -308,8 +322,12 @@ function SituationMode() {
               capacity={capacity}
               assignments={assignments}
               setAssignments={setAssignments}
+              getDisplayLevel={displayLevel}
+              getSortValue={sortValue}
+              showSmartGroups={showSmartGroups}
             />
           </div>
+
 
           <div className="flex justify-center">
             <PopButton variant="primary" size="lg" onClick={startSituation} disabled={!selectedSkills.length || !students.length}>
