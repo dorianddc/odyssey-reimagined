@@ -1,6 +1,15 @@
 // Lightweight global store using React context — keeps generated students per class in memory.
 // Persisted to localStorage so the teacher can manage real classes/students.
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   CLASSES_CONFIG as DEFAULT_CLASSES,
   CURRICULUM,
@@ -29,8 +38,21 @@ export interface ClassConfig {
 }
 
 interface SituationOutcome {
-  progressed: { studentId: string; studentName: string; skillId: string; skillCode: string; before: number; after: number }[];
-  stagnated: { studentId: string; studentName: string; skillId: string; skillCode: string; level: number }[];
+  progressed: {
+    studentId: string;
+    studentName: string;
+    skillId: string;
+    skillCode: string;
+    before: number;
+    after: number;
+  }[];
+  stagnated: {
+    studentId: string;
+    studentName: string;
+    skillId: string;
+    skillCode: string;
+    level: number;
+  }[];
   levelUps: { studentId: string; studentName: string; oldLevel: number; newLevel: number }[];
 }
 
@@ -58,7 +80,7 @@ interface AppStore {
   recordSituation: (
     classId: string,
     skillIds: string[],
-    snapshot: Record<string, Record<string, number>>
+    snapshot: Record<string, Record<string, number>>,
   ) => SituationOutcome;
   situationHistory: SituationRecord[];
   setLevelUpSuspended: (suspended: boolean) => void;
@@ -72,13 +94,34 @@ export const LS_CLASSES = "db_classes_v1";
 export const LS_STUDENTS = "db_students_v1";
 export const LS_HISTORY = "db_situation_history_v1";
 
-const EMOJI_POOL = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "💎", "🦁", "🐻", "🐯", "🦅", "🐺", "🦄", "🐲", "🌟"];
+const EMOJI_POOL = [
+  "🐣",
+  "🦊",
+  "⚡",
+  "🔥",
+  "🚀",
+  "🏆",
+  "👑",
+  "💎",
+  "🦁",
+  "🐻",
+  "🐯",
+  "🦅",
+  "🐺",
+  "🦄",
+  "🐲",
+  "🌟",
+];
 
 // Set des skillId valides dans le curriculum courant (cycle3 + cycle4 confondus).
 const VALID_SKILL_IDS: Set<string> = (() => {
   const ids = new Set<string>();
-  (Object.values(CURRICULUM) as Array<{ categories: Record<string, { skills: Array<{ id: string }> }> }>).forEach(
-    (cyc) => Object.values(cyc.categories).forEach((cat) => cat.skills.forEach((s) => ids.add(s.id)))
+  (
+    Object.values(CURRICULUM) as Array<{
+      categories: Record<string, { skills: Array<{ id: string }> }>;
+    }>
+  ).forEach((cyc) =>
+    Object.values(cyc.categories).forEach((cat) => cat.skills.forEach((s) => ids.add(s.id))),
   );
   return ids;
 })();
@@ -166,7 +209,9 @@ const hasTwoConsecutiveStagnationsAtLevel = (
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   for (const past of chronological) {
-    const didProgress = past.progressed.some((p) => p.studentId === studentId && p.skillId === skillId);
+    const didProgress = past.progressed.some(
+      (p) => p.studentId === studentId && p.skillId === skillId,
+    );
     if (didProgress) {
       consecutive = 0;
       continue;
@@ -215,12 +260,13 @@ const normalizeDifficultiesByHistory = (
 };
 
 const slugifyClassName = (name: string, existing: string[]): string => {
-  const base = name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .toUpperCase()
-    .slice(0, 8) || "CLASSE";
+  const base =
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .toUpperCase()
+      .slice(0, 8) || "CLASSE";
   let id = base;
   let i = 2;
   while (existing.includes(id)) {
@@ -231,7 +277,9 @@ const slugifyClassName = (name: string, existing: string[]): string => {
 
 export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   const [classes, setClasses] = useState<ClassConfig[]>(() => loadClasses());
-  const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>(() => loadStudents(loadClasses()));
+  const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>(() =>
+    loadStudents(loadClasses()),
+  );
   const [situationHistory, setSituationHistory] = useState<SituationRecord[]>(() => loadHistory());
   const [pendingLevelUp, setPendingLevelUp] = useState<LevelUpEvent | null>(null);
   const levelUpSuspendedRef = useRef(false);
@@ -239,13 +287,25 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
 
   // persist
   useEffect(() => {
-    try { localStorage.setItem(LS_CLASSES, JSON.stringify(classes)); } catch { /* noop */ }
+    try {
+      localStorage.setItem(LS_CLASSES, JSON.stringify(classes));
+    } catch {
+      /* noop */
+    }
   }, [classes]);
   useEffect(() => {
-    try { localStorage.setItem(LS_STUDENTS, JSON.stringify(studentsByClass)); } catch { /* noop */ }
+    try {
+      localStorage.setItem(LS_STUDENTS, JSON.stringify(studentsByClass));
+    } catch {
+      /* noop */
+    }
   }, [studentsByClass]);
   useEffect(() => {
-    try { localStorage.setItem(LS_HISTORY, JSON.stringify(situationHistory)); } catch { /* noop */ }
+    try {
+      localStorage.setItem(LS_HISTORY, JSON.stringify(situationHistory));
+    } catch {
+      /* noop */
+    }
   }, [situationHistory]);
 
   useEffect(() => {
@@ -264,8 +324,9 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const getStudent = useCallback(
-    (classId: string, studentId: string) => studentsByClass[classId]?.find((s) => s.id === studentId),
-    [studentsByClass]
+    (classId: string, studentId: string) =>
+      studentsByClass[classId]?.find((s) => s.id === studentId),
+    [studentsByClass],
   );
 
   const bumpSkill = useCallback(
@@ -304,17 +365,23 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
         return { ...prev, [classId]: list };
       });
     },
-    [classes]
+    [classes],
   );
 
-  const addClass = useCallback(({ name, cycle, emoji }: { name: string; cycle: Cycle; emoji?: string }) => {
-    const id = slugifyClassName(name, classes.map((c) => c.id));
-    const finalEmoji = emoji || EMOJI_POOL[Math.floor(Math.random() * EMOJI_POOL.length)];
-    const newCls: ClassConfig = { id, name: name.trim(), cycle, emoji: finalEmoji };
-    setClasses((prev) => [...prev, newCls]);
-    setStudentsByClass((prev) => ({ ...prev, [id]: [] }));
-    return id;
-  }, [classes]);
+  const addClass = useCallback(
+    ({ name, cycle, emoji }: { name: string; cycle: Cycle; emoji?: string }) => {
+      const id = slugifyClassName(
+        name,
+        classes.map((c) => c.id),
+      );
+      const finalEmoji = emoji || EMOJI_POOL[Math.floor(Math.random() * EMOJI_POOL.length)];
+      const newCls: ClassConfig = { id, name: name.trim(), cycle, emoji: finalEmoji };
+      setClasses((prev) => [...prev, newCls]);
+      setStudentsByClass((prev) => ({ ...prev, [id]: [] }));
+      return id;
+    },
+    [classes],
+  );
 
   const removeClass = useCallback((classId: string) => {
     setClasses((prev) => prev.filter((c) => c.id !== classId));
@@ -324,24 +391,28 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  const addStudent = useCallback((classId: string, { name, gender }: { name: string; gender: "F" | "M" }) => {
-    const cls = classes.find((c) => c.id === classId);
-    if (!cls) return;
-    setStudentsByClass((prev) => {
-      const list = prev[classId] ? [...prev[classId]] : [];
-      const id = `${classId}-${gender}-${Date.now().toString(36)}`;
-      const student: Student = {
-        id,
-        name: name.trim(),
-        gender,
-        level: calculateLevelFromStars({}, cls.cycle),
-        skillStates: {},
-        stagnations: [], difficulties: [],
-        avatarHue: Math.floor(Math.random() * 360),
-      };
-      return { ...prev, [classId]: [...list, student] };
-    });
-  }, [classes]);
+  const addStudent = useCallback(
+    (classId: string, { name, gender }: { name: string; gender: "F" | "M" }) => {
+      const cls = classes.find((c) => c.id === classId);
+      if (!cls) return;
+      setStudentsByClass((prev) => {
+        const list = prev[classId] ? [...prev[classId]] : [];
+        const id = `${classId}-${gender}-${Date.now().toString(36)}`;
+        const student: Student = {
+          id,
+          name: name.trim(),
+          gender,
+          level: calculateLevelFromStars({}, cls.cycle),
+          skillStates: {},
+          stagnations: [],
+          difficulties: [],
+          avatarHue: Math.floor(Math.random() * 360),
+        };
+        return { ...prev, [classId]: [...list, student] };
+      });
+    },
+    [classes],
+  );
 
   const removeStudent = useCallback((classId: string, studentId: string) => {
     setStudentsByClass((prev) => {
@@ -372,8 +443,12 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
             if (afterStars !== beforeStars) touched = true;
             if (afterStars > beforeStars) {
               outcome.progressed.push({
-                studentId: s.id, studentName: s.name, skillId,
-                skillCode: meta.skill.code, before: beforeStars, after: afterStars,
+                studentId: s.id,
+                studentName: s.name,
+                skillId,
+                skillCode: meta.skill.code,
+                before: beforeStars,
+                after: afterStars,
               });
               // Progression sur ce skill → on retire toute alerte existante.
               // Pas de nouvelle pastille tant que l'élève progresse, même < mastery.
@@ -381,8 +456,11 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
             } else if (afterStars === beforeStars && afterStars < MASTERY_THRESHOLD) {
               // Stagnation détectée sur ce skill.
               outcome.stagnated.push({
-                studentId: s.id, studentName: s.name, skillId,
-                skillCode: meta.skill.code, level: afterStars,
+                studentId: s.id,
+                studentName: s.name,
+                skillId,
+                skillCode: meta.skill.code,
+                level: afterStars,
               });
               // Seuil de tolérance : on ne déclenche l'alerte qu'à partir
               // de 2 stagnations consécutives (en remontant l'historique).
@@ -392,9 +470,13 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
                 .slice()
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
               for (const past of previousSameSkill) {
-                const didProgress = past.progressed.some((p) => p.studentId === s.id && p.skillId === skillId);
+                const didProgress = past.progressed.some(
+                  (p) => p.studentId === s.id && p.skillId === skillId,
+                );
                 if (didProgress) break;
-                const didStagnate = past.stagnated.some((p) => p.studentId === s.id && p.skillId === skillId && p.level === afterStars);
+                const didStagnate = past.stagnated.some(
+                  (p) => p.studentId === s.id && p.skillId === skillId && p.level === afterStars,
+                );
                 if (didStagnate) consecutive++;
                 else break;
               }
@@ -424,7 +506,10 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
             s.level = newLevel;
             if (newLevel > oldLevel) {
               outcome.levelUps.push({
-                studentId: s.id, studentName: s.name, oldLevel, newLevel,
+                studentId: s.id,
+                studentName: s.name,
+                oldLevel,
+                newLevel,
               });
             }
           }
@@ -449,7 +534,7 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
 
       return outcome;
     },
-    [classes, situationHistory]
+    [classes, situationHistory],
   );
 
   const setLevelUpSuspended = useCallback((suspended: boolean) => {
@@ -473,7 +558,21 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
       pendingLevelUp,
       clearLevelUp: () => setPendingLevelUp(null),
     }),
-    [classes, studentsByClass, ensureClass, getStudent, bumpSkill, addClass, removeClass, addStudent, removeStudent, recordSituation, situationHistory, setLevelUpSuspended, pendingLevelUp]
+    [
+      classes,
+      studentsByClass,
+      ensureClass,
+      getStudent,
+      bumpSkill,
+      addClass,
+      removeClass,
+      addStudent,
+      removeStudent,
+      recordSituation,
+      situationHistory,
+      setLevelUpSuspended,
+      pendingLevelUp,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
