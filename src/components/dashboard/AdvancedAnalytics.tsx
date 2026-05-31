@@ -9,8 +9,8 @@
 // ============================================================================
 import { useMemo, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
   ScatterChart, Scatter, ReferenceLine, ReferenceArea, ZAxis,
 } from "recharts";
 import { CURRICULUM, type Cycle, type Student, type DimensionKey } from "@/data/curriculum";
@@ -29,19 +29,7 @@ interface Props {
   situationHistory: SituationRecord[];
 }
 
-// Palette graphique stable (8 contenus max en cycle3).
-const PALETTE = [
-  "oklch(0.65 0.22 25)",   // rouge
-  "oklch(0.65 0.18 240)",  // bleu
-  "oklch(0.72 0.20 45)",   // orange
-  "oklch(0.78 0.18 115)",  // jaune-vert
-  "oklch(0.62 0.20 300)",  // violet
-  "oklch(0.72 0.18 350)",  // rose
-  "oklch(0.7 0.18 175)",   // teal
-  "oklch(0.55 0.2 140)",   // vert foncé
-];
 const HIGHLIGHT = "#3b82f6";
-const MUTED = "oklch(0.5 0 0)";
 
 // ---------- helpers communs --------------------------------------------------
 const skillList = (cycle: Cycle) => {
@@ -63,118 +51,8 @@ const SOCIOMETHODO_SKILLS_C3 = new Set([
   "c3_met_invest", "c3_soc_arbitrage", "c3_soc_observation",
 ]);
 
-// ============================================================================
-// 1. SPAGHETTI CIBLÉ
-// ============================================================================
-function SpaghettiChart({ students, cycle, classId, situationHistory }: Props) {
-  const opts = useMemo(() => skillList(cycle), [cycle]);
-  const [skillId, setSkillId] = useState<string>(opts[0]?.id ?? "");
-  const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
+// (Spaghetti chart retiré — illisible avec 30 élèves.)
 
-  // Trame chronologique : tous les enregistrements de cette classe qui touchent le skill.
-  const sortedRecords = useMemo(
-    () => situationHistory
-      .filter((r) => r.classId === classId && r.skillIds.includes(skillId))
-      .slice()
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [situationHistory, classId, skillId],
-  );
-
-  // Reconstitue l'historique d'étoiles par élève sur ce skill (cumulatif).
-  const data = useMemo(() => {
-    if (!skillId || sortedRecords.length === 0) return [];
-    const lastKnown: Record<string, number> = {};
-    students.forEach((s) => { lastKnown[s.id] = 0; });
-    const rows: Array<Record<string, number | string>> = [];
-    sortedRecords.forEach((r, idx) => {
-      r.progressed.forEach((p) => {
-        if (p.skillId === skillId) lastKnown[p.studentId] = p.after;
-      });
-      r.stagnated.forEach((p) => {
-        if (p.skillId === skillId) lastKnown[p.studentId] = p.level;
-      });
-      const date = new Date(r.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
-      const row: Record<string, number | string> = { name: `S${idx + 1} · ${date}` };
-      students.forEach((s) => { row[s.id] = lastKnown[s.id]; });
-      rows.push(row);
-    });
-    return rows;
-  }, [students, sortedRecords, skillId]);
-
-  const skillName = opts.find((o) => o.id === skillId)?.name ?? "—";
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-3">
-        <Field label="Contenu d'apprentissage suivi">
-          <Select value={skillId} onValueChange={setSkillId}>
-            <SelectTrigger className={triggerCls + " min-w-[260px]"}><SelectValue /></SelectTrigger>
-            <SelectContent className={contentCls}>
-              {opts.map((s) => (
-                <SelectItem key={s.id} value={s.id} className={itemCls}>
-                  {s.code} · {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <p className="text-[11px] text-ink-soft font-semibold uppercase tracking-widest pb-2">
-          Survolez une ligne pour isoler un élève — repérez les décrocheurs.
-        </p>
-      </div>
-
-      {data.length === 0 ? (
-        <EmptyBox label={`Aucune situation enregistrée pour « ${skillName} »`} />
-      ) : (
-        <ResponsiveContainer width="100%" height={360}>
-          <LineChart data={data} margin={{ top: 12, right: 16, left: -8, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 0.18)" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700 }} />
-            <YAxis
-              domain={[0, 4]}
-              ticks={[0, 1, 2, 3, 4]}
-              allowDecimals={false}
-              tick={{ fontSize: 11, fontWeight: 700 }}
-            />
-            <Tooltip
-              cursor={{ stroke: HIGHLIGHT, strokeDasharray: "3 3" }}
-              contentStyle={tooltipStyle}
-              labelStyle={{ color: "oklch(0.95 0 0)", fontWeight: 800 }}
-              formatter={(value: number, _name: string, ctx: { dataKey?: string | number }) => {
-                const stu = students.find((s) => s.id === String(ctx.dataKey));
-                return [`${value} / 4`, stu?.name ?? String(ctx.dataKey)];
-              }}
-            />
-            {students.map((s, i) => {
-              const isActive = activeStudentId === s.id;
-              const dimmed = activeStudentId && !isActive;
-              return (
-                <Line
-                  key={s.id}
-                  type="monotone"
-                  dataKey={s.id}
-                  name={s.name}
-                  stroke={isActive ? HIGHLIGHT : PALETTE[i % PALETTE.length]}
-                  strokeWidth={isActive ? 4 : 2}
-                  strokeOpacity={dimmed ? 0.15 : isActive ? 1 : 0.7}
-                  dot={{ r: isActive ? 5 : 3 }}
-                  activeDot={{
-                    r: 7,
-                    onMouseEnter: () => setActiveStudentId(s.id),
-                    onMouseLeave: () => setActiveStudentId(null),
-                  }}
-                  isAnimationActive={false}
-                  onMouseEnter={() => setActiveStudentId(s.id)}
-                  onMouseLeave={() => setActiveStudentId(null)}
-                />
-              );
-            })}
-          </LineChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  );
-}
 
 // ============================================================================
 // 2. HEATMAP — table HTML/CSS Tailwind (PAS de Recharts).
@@ -423,7 +301,7 @@ function NeedsMatrix({ students, cycle }: Props) {
                         tick={{ fontSize: 11, fontWeight: 700 }}
                         label={{ value: "Socio-Méthodo ↑", angle: -90, position: "insideLeft", fontSize: 11, fontWeight: 700 }}
                       />
-                      <ZAxis range={[260, 260]} />
+                      <ZAxis range={[36, 36]} />
                       <ReferenceArea x1={meanMotor} x2={4} y1={meanSocio} y2={4} fill="#dcfce7" fillOpacity={0.55} stroke="none"
                         label={{ value: "Leaders", position: "insideTopRight", fill: "#15803d", fontSize: 11, fontWeight: 800 }} />
                       <ReferenceArea x1={0} x2={meanMotor} y1={meanSocio} y2={4} fill="#dbeafe" fillOpacity={0.55} stroke="none"
@@ -448,7 +326,24 @@ function NeedsMatrix({ students, cycle }: Props) {
                           );
                         }}
                       />
-                      <Scatter name="Élèves" data={points} fill={HIGHLIGHT} shape="circle" />
+                      <Scatter
+                        name="Élèves"
+                        data={points}
+                        shape={(p: { cx?: number; cy?: number; payload?: typeof points[number] }) => {
+                          const { cx, cy, payload } = p;
+                          if (cx == null || cy == null || !payload) return <g />;
+                          const right = payload.scoreMoteur >= meanMotor;
+                          const top = payload.scoreSocio >= meanSocio;
+                          const fill =
+                            top && right ? "#16a34a"     // Leaders — vert
+                            : top && !right ? "#2563eb"  // Bons camarades — bleu
+                            : !top && right ? "#f59e0b"  // Individualistes — orange
+                            : "#dc2626";                  // En difficulté — rouge
+                          return (
+                            <circle cx={cx} cy={cy} r={3.2} fill={fill} stroke="#0a0a0a" strokeWidth={0.6} fillOpacity={0.95} />
+                          );
+                        }}
+                      />
                     </ScatterChart>
                   </ResponsiveContainer>
                 </div>
@@ -472,21 +367,19 @@ export function AdvancedAnalytics(props: Props) {
   return (
     <div className="rounded-[var(--radius)] border-[3px] border-ink bg-surface shadow-pop p-5">
       <h3 className="font-display text-lg md:text-xl tracking-wide mb-1">
-        Analyses avancées — 4 visualisations diagnostiques
+        Analyses avancées — 3 visualisations diagnostiques
       </h3>
       <p className="text-[11px] text-ink-soft font-semibold mb-4 uppercase tracking-widest">
         Échelle stricte 0 → 4 (palier d'acquisition). Conçu pour PC / tablette paysage.
       </p>
 
-      <Tabs defaultValue="spaghetti" className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full h-auto bg-surface-2 border-[2.5px] border-ink rounded-xl p-1 mb-4">
-          <TabsTrigger value="spaghetti" className={tabCls}>1 · Spaghetti</TabsTrigger>
-          <TabsTrigger value="heatmap" className={tabCls}>2 · Heatmap</TabsTrigger>
-          <TabsTrigger value="radar" className={tabCls}>3 · Radar</TabsTrigger>
-          <TabsTrigger value="matrix" className={tabCls}>4 · Matrice</TabsTrigger>
+      <Tabs defaultValue="heatmap" className="w-full">
+        <TabsList className="grid grid-cols-3 w-full h-auto bg-surface-2 border-[2.5px] border-ink rounded-xl p-1 mb-4">
+          <TabsTrigger value="heatmap" className={tabCls}>1 · Heatmap</TabsTrigger>
+          <TabsTrigger value="radar" className={tabCls}>2 · Radar</TabsTrigger>
+          <TabsTrigger value="matrix" className={tabCls}>3 · Matrice</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="spaghetti"><SpaghettiChart {...props} /></TabsContent>
         <TabsContent value="heatmap"><HeatmapTable {...props} /></TabsContent>
         <TabsContent value="radar"><CompareRadar {...props} /></TabsContent>
         <TabsContent value="matrix"><NeedsMatrix {...props} /></TabsContent>
