@@ -338,7 +338,24 @@ function NeedsMatrix({ students, cycle }: Props) {
                           );
                         }}
                       />
-                      <Scatter name="Élèves" data={points} fill={HIGHLIGHT} shape="circle" />
+                      <Scatter
+                        name="Élèves"
+                        data={points}
+                        shape={(p: { cx?: number; cy?: number; payload?: typeof points[number] }) => {
+                          const { cx, cy, payload } = p;
+                          if (cx == null || cy == null || !payload) return <g />;
+                          const right = payload.scoreMoteur >= meanMotor;
+                          const top = payload.scoreSocio >= meanSocio;
+                          const fill =
+                            top && right ? "#16a34a"     // Leaders — vert
+                            : top && !right ? "#2563eb"  // Bons camarades — bleu
+                            : !top && right ? "#f59e0b"  // Individualistes — orange
+                            : "#dc2626";                  // En difficulté — rouge
+                          return (
+                            <circle cx={cx} cy={cy} r={3.2} fill={fill} stroke="#0a0a0a" strokeWidth={0.6} fillOpacity={0.95} />
+                          );
+                        }}
+                      />
                     </ScatterChart>
                   </ResponsiveContainer>
                 </div>
