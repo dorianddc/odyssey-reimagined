@@ -323,12 +323,6 @@ function NeedsMatrix({ students, cycle }: Props) {
         {() => (
           <>
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] font-bold uppercase tracking-wider flex-1 min-w-[280px]">
-                <QuadLegend color="oklch(0.78 0.18 115)" label="Leaders (haut-droite)" />
-                <QuadLegend color="oklch(0.65 0.18 240)" label="Bons camarades (haut-gauche)" />
-                <QuadLegend color="oklch(0.72 0.20 45)" label="Individualistes (bas-droite)" />
-                <QuadLegend color="oklch(0.65 0.22 25)" label="En difficulté (bas-gauche)" />
-              </div>
               <ZoomControls />
             </div>
 
