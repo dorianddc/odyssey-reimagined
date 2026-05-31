@@ -53,9 +53,12 @@ function SituationMode() {
   const [phase, setPhase] = useState<Phase>("setup");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
+  // Contenu "focus" pour le planner (setup) — pilote l'affichage du niveau dans la réserve et le groupement intelligent.
+  const [focusSkillId, setFocusSkillId] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<Record<string, Record<string, number>>>({});
   const [outcome, setOutcome] = useState<ReturnType<typeof recordSituation> | null>(null);
   const [pulseKey, setPulseKey] = useState(0);
+
 
   // Live toolbar
   const [sortMode, setSortMode] = useState<SortMode>("name-asc");
@@ -100,7 +103,31 @@ function SituationMode() {
 
   // ------- SETUP -------
   const toggleSkill = (id: string) =>
-    setSelectedSkills((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelectedSkills((prev) => {
+      const isOn = prev.includes(id);
+      if (isOn) {
+        if (focusSkillId === id) setFocusSkillId(null);
+        return prev.filter((x) => x !== id);
+      }
+      setFocusSkillId(id);
+      return [...prev, id];
+    });
+
+  const focusSkill = allSkills.find((s) => s.id === focusSkillId) ?? null;
+  const MOTOR_SECTORS = new Set<DimensionKey>(["moteur", "technique", "deplacement", "tactique"]);
+  const focusIsMotor = focusSkill ? MOTOR_SECTORS.has(focusSkill.dimension) : false;
+  const showSmartGroups = !!focusSkill && focusIsMotor;
+
+  const displayLevel = (s: Student) => {
+    if (!focusSkillId) return `N${s.level}`;
+    const v = s.skillStates[focusSkillId] ?? 0;
+    return v === 0 ? "NÉ" : `N${v}`;
+  };
+  const sortValue = (s: Student) => {
+    if (!focusSkillId) return s.level;
+    return s.skillStates[focusSkillId] ?? 0;
+  };
+
 
   const startSituation = () => {
     if (!selectedSkills.length) return;
@@ -224,16 +251,24 @@ function SituationMode() {
                     <div className="flex flex-wrap gap-2">
                       {categories[dim].skills.map((sk) => {
                         const checked = selectedSkills.includes(sk.id);
+                        const isFocus = focusSkillId === sk.id;
                         return (
                           <button
                             key={sk.id}
-                            onClick={() => toggleSkill(sk.id)}
+                            onClick={() => {
+                              if (checked) {
+                                // Si déjà sélectionné mais pas le focus : promouvoir en focus sans désélectionner.
+                                if (!isFocus) { setFocusSkillId(sk.id); return; }
+                              }
+                              toggleSkill(sk.id);
+                            }}
                             title={sk.name}
                             className={cn(
                               "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border-[2.5px] border-ink font-display text-[11px] tracking-wide transition-all",
                               checked
                                 ? cn(meta.color, "shadow-pop-sm -translate-y-0.5 ring-2 ring-ink/30")
-                                : "bg-surface hover:bg-surface-2 text-ink"
+                                : "bg-surface hover:bg-surface-2 text-ink",
+                              isFocus && "ring-4 ring-secondary"
                             )}
                           >
                             {checked && <CheckCircle2 size={12} strokeWidth={3} />}
@@ -246,6 +281,7 @@ function SituationMode() {
                           </button>
                         );
                       })}
+
                     </div>
                   </div>
                 );
@@ -259,6 +295,20 @@ function SituationMode() {
               <div>
                 <h2 className="font-display text-2xl leading-tight">Gymnase virtuel</h2>
                 <p className="text-xs font-semibold text-ink-soft">Glisse chaque élève dans un demi-terrain, ou utilise la baguette magique.</p>
+                {focusSkill ? (
+                  <p className="mt-1 text-[11px] font-bold uppercase tracking-widest">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground border-[2px] border-ink">
+                      Focus · {focusSkill.code} — {focusSkill.name}
+                    </span>
+                    <span className="ml-2 normal-case font-semibold text-ink-soft">
+                      Niveau affiché = acquisition de ce contenu (0 à 4).
+                    </span>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[11px] font-semibold text-ink-soft">
+                    Niveau affiché = niveau global. Clique sur un contenu pour cibler son acquisition.
+                  </p>
+                )}
               </div>
               <CourtConfig
                 courtCount={courtCount} setCourtCount={setCourtCount}
@@ -272,8 +322,12 @@ function SituationMode() {
               capacity={capacity}
               assignments={assignments}
               setAssignments={setAssignments}
+              getDisplayLevel={displayLevel}
+              getSortValue={sortValue}
+              showSmartGroups={showSmartGroups}
             />
           </div>
+
 
           <div className="flex justify-center">
             <PopButton variant="primary" size="lg" onClick={startSituation} disabled={!selectedSkills.length || !students.length}>
