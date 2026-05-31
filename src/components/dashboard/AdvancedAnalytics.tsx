@@ -229,19 +229,6 @@ function spreadOffset(index: number, total: number) {
   return { dx: Math.cos(angle) * radius, dy: Math.sin(angle) * radius };
 }
 
-function quadrantStroke(
-  scoreMoteur: number,
-  scoreSocio: number,
-  meanMotor: number,
-  meanSocio: number,
-) {
-  const right = scoreMoteur >= meanMotor;
-  const top = scoreSocio >= meanSocio;
-  if (top && right) return "#16a34a";
-  if (top && !right) return "#2563eb";
-  if (!top && right) return "#f59e0b";
-  return "#dc2626";
-}
 
 function ZoomControls() {
   const { zoomIn, zoomOut, resetTransform } = useControls();
@@ -336,12 +323,6 @@ function NeedsMatrix({ students, cycle }: Props) {
         {() => (
           <>
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] font-bold uppercase tracking-wider flex-1 min-w-[280px]">
-                <QuadLegend color="oklch(0.78 0.18 115)" label="Leaders (haut-droite)" />
-                <QuadLegend color="oklch(0.65 0.18 240)" label="Bons camarades (haut-gauche)" />
-                <QuadLegend color="oklch(0.72 0.20 45)" label="Individualistes (bas-droite)" />
-                <QuadLegend color="oklch(0.65 0.22 25)" label="En difficulté (bas-gauche)" />
-              </div>
               <ZoomControls />
             </div>
 
@@ -505,20 +486,14 @@ function NeedsMatrix({ students, cycle }: Props) {
                         }) => {
                           const { cx, cy, payload } = p;
                           if (cx == null || cy == null || !payload) return <g />;
-                          const stroke = quadrantStroke(
-                            payload.scoreMoteur,
-                            payload.scoreSocio,
-                            meanMotor,
-                            meanSocio,
-                          );
                           return (
                             <circle
                               cx={cx}
                               cy={cy}
                               r={4.1}
                               fill="#0a0a0a"
-                              stroke={stroke}
-                              strokeWidth={2.4}
+                              stroke="#ffffff"
+                              strokeWidth={0.8}
                               fillOpacity={0.96}
                             />
                           );
@@ -611,14 +586,6 @@ function EmptyBox({ label }: { label: string }) {
   return (
     <div className="h-[320px] grid place-items-center text-ink-soft font-semibold text-sm border-2 border-dashed border-ink/20 rounded-xl">
       {label}
-    </div>
-  );
-}
-function QuadLegend({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-surface-2 border-2 border-ink/20">
-      <span className="w-3 h-3 rounded-full border-2 border-ink" style={{ background: color }} />
-      <span className="truncate">{label}</span>
     </div>
   );
 }
