@@ -106,34 +106,45 @@ export function CourtConfig({
 
 /* ============================ COURT VISUAL ============================ */
 function CourtVisual({
-  courtIdx, count, renderZone, minHeight = "min-h-[170px]",
+  courtIdx, count, renderZone, size = "sm",
 }: {
   courtIdx: number;
   count: number;
   renderZone: (z: Zone) => React.ReactNode;
-  minHeight?: string;
+  size?: "sm" | "lg";
 }) {
+  // Vrai ratio terrain de badminton (largeur 6.1m × longueur 13.4m), vue de dessus en portrait.
+  const maxW = size === "lg" ? "max-w-[360px]" : "max-w-[260px]";
   return (
-    <div className="pop-card overflow-hidden">
+    <div className={cn("pop-card overflow-hidden mx-auto w-full", maxW)}>
       <div className="flex items-center justify-between px-3 py-1.5 bg-ink text-surface">
         <span className="font-display text-xs tracking-widest uppercase">Terrain {courtIdx + 1}</span>
         <span className="text-[10px] font-bold opacity-80">{count} élève{count > 1 ? "s" : ""}</span>
       </div>
-      <div className={cn("relative grid grid-cols-2 grid-rows-2 bg-[oklch(0.93_0.05_150)]", minHeight)}>
-        {/* Filet */}
-        <div className="pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[5px] bg-ink z-10 shadow-[0_0_0_1px_oklch(0.95_0.05_150)]" />
-        {/* Ligne médiane */}
-        <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1.5px] bg-ink/40 z-10" />
-        {ZONES.map((z) => (
-          <div key={z} className="relative">{renderZone(z)}</div>
-        ))}
+      {/* Cadre extérieur bleu (lignes du terrain) sur fond vert (sol). */}
+      <div className="p-2 bg-[oklch(0.55_0.18_240)]">
+        <div
+          className="relative grid grid-cols-2 grid-rows-2 bg-[oklch(0.62_0.16_150)] border-[3px] border-[oklch(0.98_0.02_240)] rounded-sm"
+          style={{ aspectRatio: "6.1 / 13.4" }}
+        >
+          {/* Filet (horizontal, milieu) */}
+          <div className="pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[4px] bg-ink z-10 shadow-[0_0_0_1px_oklch(0.98_0.02_240)]" />
+          {/* Ligne médiane (verticale, divise les demi-terrains gauche/droite) */}
+          <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] bg-[oklch(0.98_0.02_240)] z-[5]" />
+          {/* Ligne de service (horizontale, à ~1.98m du filet) */}
+          <div className="pointer-events-none absolute left-0 right-0 top-[35%] h-[1.5px] bg-[oklch(0.98_0.02_240)]/70 z-[5]" />
+          <div className="pointer-events-none absolute left-0 right-0 top-[65%] h-[1.5px] bg-[oklch(0.98_0.02_240)]/70 z-[5]" />
+          {ZONES.map((z) => (
+            <div key={z} className="relative">{renderZone(z)}</div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 /* ============================ STUDENT PILL ============================ */
-function StudentPill({ student, dragging }: { student: Student; dragging?: boolean }) {
+function StudentPill({ student, dragging, levelLabel }: { student: Student; dragging?: boolean; levelLabel?: string }) {
   return (
     <div className={cn(
       "inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full border-[2.5px] border-ink bg-surface shadow-pop-sm font-display text-[11px] select-none",
@@ -141,20 +152,23 @@ function StudentPill({ student, dragging }: { student: Student; dragging?: boole
     )}>
       <AvatarBlob name={student.name} hue={student.avatarHue} size={22} rank="rookie" />
       <span className="truncate max-w-[110px]">{student.name}</span>
-      <span className="ml-0.5 px-1.5 py-0.5 rounded-md bg-ink text-surface text-[9px]">N{student.level}</span>
+      <span className="ml-0.5 px-1.5 py-0.5 rounded-md bg-ink text-surface text-[9px]">
+        {levelLabel ?? `N${student.level}`}
+      </span>
     </div>
   );
 }
 
-function DraggablePill({ student }: { student: Student }) {
+function DraggablePill({ student, levelLabel }: { student: Student; levelLabel?: string }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `student:${student.id}` });
   return (
     <button ref={setNodeRef} {...listeners} {...attributes}
       className={cn("cursor-grab active:cursor-grabbing touch-none", isDragging && "opacity-30")}>
-      <StudentPill student={student} />
+      <StudentPill student={student} levelLabel={levelLabel} />
     </button>
   );
 }
+
 
 function ZoneDroppable({
   id, label, children,
