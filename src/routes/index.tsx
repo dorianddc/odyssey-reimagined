@@ -48,6 +48,11 @@ function Hub() {
   const [openAdd, setOpenAdd] = useState(false);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [recapId, setRecapId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [name, setName] = useState("");
   const [cycle, setCycle] = useState<Cycle>("cycle4");
@@ -118,7 +123,7 @@ function Hub() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {classes.map((cls, i) => {
             const style = cycleStyles[cls.cycle];
-            const count = studentsByClass[cls.id]?.length ?? 0;
+            const count = mounted ? (studentsByClass[cls.id]?.length ?? 0) : 0;
             return (
               <div
                 key={cls.id}
