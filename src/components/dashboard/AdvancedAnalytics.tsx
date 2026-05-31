@@ -229,19 +229,6 @@ function spreadOffset(index: number, total: number) {
   return { dx: Math.cos(angle) * radius, dy: Math.sin(angle) * radius };
 }
 
-function quadrantStroke(
-  scoreMoteur: number,
-  scoreSocio: number,
-  meanMotor: number,
-  meanSocio: number,
-) {
-  const right = scoreMoteur >= meanMotor;
-  const top = scoreSocio >= meanSocio;
-  if (top && right) return "#16a34a";
-  if (top && !right) return "#2563eb";
-  if (!top && right) return "#f59e0b";
-  return "#dc2626";
-}
 
 function ZoomControls() {
   const { zoomIn, zoomOut, resetTransform } = useControls();
