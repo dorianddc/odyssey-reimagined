@@ -251,16 +251,24 @@ function SituationMode() {
                     <div className="flex flex-wrap gap-2">
                       {categories[dim].skills.map((sk) => {
                         const checked = selectedSkills.includes(sk.id);
+                        const isFocus = focusSkillId === sk.id;
                         return (
                           <button
                             key={sk.id}
-                            onClick={() => toggleSkill(sk.id)}
+                            onClick={() => {
+                              if (checked) {
+                                // Si déjà sélectionné mais pas le focus : promouvoir en focus sans désélectionner.
+                                if (!isFocus) { setFocusSkillId(sk.id); return; }
+                              }
+                              toggleSkill(sk.id);
+                            }}
                             title={sk.name}
                             className={cn(
                               "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border-[2.5px] border-ink font-display text-[11px] tracking-wide transition-all",
                               checked
                                 ? cn(meta.color, "shadow-pop-sm -translate-y-0.5 ring-2 ring-ink/30")
-                                : "bg-surface hover:bg-surface-2 text-ink"
+                                : "bg-surface hover:bg-surface-2 text-ink",
+                              isFocus && "ring-4 ring-secondary"
                             )}
                           >
                             {checked && <CheckCircle2 size={12} strokeWidth={3} />}
@@ -273,6 +281,7 @@ function SituationMode() {
                           </button>
                         );
                       })}
+
                     </div>
                   </div>
                 );
