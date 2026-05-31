@@ -153,6 +153,8 @@ const StudentProfile = () => {
     }
   };
 
+  const hasHighDifficulty = (student.difficulties || []).some((d) => d.currentLevel <= 2);
+
   return (
     <main className="min-h-screen pb-24">
       {pendingLevelUp && pendingLevelUp.studentId === studentId && (
@@ -263,14 +265,25 @@ const StudentProfile = () => {
       {/* DIFFICULTIES ALERT */}
       {(student.difficulties?.length ?? 0) > 0 && (
         <section className="max-w-6xl mx-auto px-4 md:px-8 mt-6">
-          <div className="relative pop-card overflow-hidden border-[3px] border-[oklch(0.65_0.28_25)] bg-[oklch(0.97_0.04_25)]">
-            <div className="absolute inset-0 pointer-events-none animate-pulse bg-[oklch(0.65_0.28_25)]/5" />
+          <div className={cn(
+            "relative pop-card overflow-hidden border-[3px]",
+            hasHighDifficulty
+              ? "border-[oklch(0.65_0.28_25)] bg-[oklch(0.97_0.04_25)]"
+              : "border-ink/25 bg-surface-2/50 opacity-80",
+          )}>
+            {hasHighDifficulty && <div className="absolute inset-0 pointer-events-none animate-pulse bg-[oklch(0.65_0.28_25)]/5" />}
             <div className="p-4 md:p-5 flex items-start gap-3 relative">
-              <div className="w-10 h-10 rounded-xl bg-[oklch(0.65_0.28_25)] text-white border-[2.5px] border-ink grid place-items-center shrink-0 shadow-pop-sm">
+              <div className={cn(
+                "w-10 h-10 rounded-xl border-[2.5px] border-ink grid place-items-center shrink-0 shadow-pop-sm",
+                hasHighDifficulty ? "bg-[oklch(0.65_0.28_25)] text-white" : "bg-surface text-ink-soft",
+              )}>
                 <AlertTriangle size={22} strokeWidth={3} />
               </div>
               <div className="flex-1">
-                <h2 className="font-display text-lg md:text-xl uppercase tracking-wide text-[oklch(0.45_0.22_25)] leading-tight">
+                <h2 className={cn(
+                  "font-display text-lg md:text-xl uppercase tracking-wide leading-tight",
+                  hasHighDifficulty ? "text-[oklch(0.45_0.22_25)]" : "text-ink-soft",
+                )}>
                   Difficultés repérées · {student.difficulties.length}
                 </h2>
                 <p className="text-xs font-semibold text-ink-soft">
@@ -279,14 +292,21 @@ const StudentProfile = () => {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {student.difficulties.map((d) => {
                     const skill = Object.values(categories).flatMap((c) => c.skills).find((s) => s.id === d.skillId);
+                    const high = d.currentLevel <= 2;
                     return (
                       <div
                         key={d.id}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-[2.5px] border-ink bg-surface shadow-pop-sm"
+                        className={cn(
+                          "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-[2.5px] border-ink bg-surface shadow-pop-sm",
+                          !high && "opacity-60 grayscale",
+                        )}
                       >
                         <span className="relative inline-grid place-items-center">
-                          <span className="absolute inset-0 rounded-full ring-2 ring-[oklch(0.65_0.28_25)] animate-ping" />
-                          <span className="relative w-2.5 h-2.5 rounded-full bg-[oklch(0.65_0.28_25)]" />
+                          {high && <span className="absolute inset-0 rounded-full ring-2 ring-[oklch(0.65_0.28_25)] animate-ping" />}
+                          <span className={cn(
+                            "relative w-2.5 h-2.5 rounded-full",
+                            high ? "bg-[oklch(0.65_0.28_25)]" : "bg-ink-soft/45",
+                          )} />
                         </span>
                         <span className="font-display text-xs uppercase">{d.skillCode}</span>
                         <span className="text-xs font-semibold text-ink truncate max-w-[180px]">
