@@ -53,9 +53,12 @@ function SituationMode() {
   const [phase, setPhase] = useState<Phase>("setup");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
+  // Contenu "focus" pour le planner (setup) — pilote l'affichage du niveau dans la réserve et le groupement intelligent.
+  const [focusSkillId, setFocusSkillId] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<Record<string, Record<string, number>>>({});
   const [outcome, setOutcome] = useState<ReturnType<typeof recordSituation> | null>(null);
   const [pulseKey, setPulseKey] = useState(0);
+
 
   // Live toolbar
   const [sortMode, setSortMode] = useState<SortMode>("name-asc");
