@@ -2,10 +2,27 @@
 import { useEffect, useState } from "react";
 import { useAudio } from "@/lib/audio";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Trophy, Users, Sparkles, ChevronRight, Plus, Trash2, Map as MapIcon, X, BarChart3 } from "lucide-react";
+import {
+  Trophy,
+  Users,
+  Sparkles,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Map as MapIcon,
+  X,
+  BarChart3,
+} from "lucide-react";
 import { useAppStore } from "@/store/AppStore";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,17 +54,41 @@ const cycleStyles: Record<string, { label: string; gradient: string; pill: strin
   },
 };
 
-const EMOJI_CHOICES = ["🐣", "🦊", "⚡", "🔥", "🚀", "🏆", "👑", "💎", "🦁", "🐻", "🐯", "🦅", "🦄", "🐲", "🌟", "🏸"];
+const EMOJI_CHOICES = [
+  "🐣",
+  "🦊",
+  "⚡",
+  "🔥",
+  "🚀",
+  "🏆",
+  "👑",
+  "💎",
+  "🦁",
+  "🐻",
+  "🐯",
+  "🦅",
+  "🦄",
+  "🐲",
+  "🌟",
+  "🏸",
+];
 
 function Hub() {
   const navigate = useNavigate();
   const { classes, studentsByClass, ensureClass, addClass, removeClass } = useAppStore();
   const { setBgm } = useAudio();
-  useEffect(() => { setBgm("hub"); }, [setBgm]);
+  useEffect(() => {
+    setBgm("hub");
+  }, [setBgm]);
 
   const [openAdd, setOpenAdd] = useState(false);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [recapId, setRecapId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [name, setName] = useState("");
   const [cycle, setCycle] = useState<Cycle>("cycle4");
@@ -83,18 +124,25 @@ function Hub() {
         <div className="relative inline-block animate-pop-in">
           <h1 className="font-display text-7xl md:text-9xl tracking-tight leading-none">
             <span className="text-foreground">DÉFI</span>{" "}
-            <span className="text-gradient-sun drop-shadow-[0_4px_0_hsl(var(--ink))]">BADMINTON</span>
+            <span className="text-gradient-sun drop-shadow-[0_4px_0_hsl(var(--ink))]">
+              BADMINTON
+            </span>
           </h1>
-          <span className="absolute -top-6 -right-10 text-6xl animate-float-y" aria-hidden>🏸</span>
+          <span className="absolute -top-6 -right-10 text-6xl animate-float-y" aria-hidden>
+            🏸
+          </span>
         </div>
 
         <div className="inline-flex items-center gap-2 bg-surface border-[3px] border-ink rounded-full px-4 py-2 shadow-pop-sm mt-6 animate-fade-in">
           <Sparkles size={16} className="text-primary" strokeWidth={3} />
-          <span className="text-xs font-bold uppercase tracking-widest">Éducation Physique & Sportive · Saison 2026</span>
+          <span className="text-xs font-bold uppercase tracking-widest">
+            Éducation Physique & Sportive · Saison 2026
+          </span>
         </div>
 
         <p className="mt-6 text-base md:text-lg text-ink-soft max-w-xl mx-auto font-semibold">
-          Le suivi ludique des compétences en badminton scolaire. Sélectionnez une classe pour évaluer la progression de vos élèves.
+          Le suivi ludique des compétences en badminton scolaire. Sélectionnez une classe pour
+          évaluer la progression de vos élèves.
         </p>
       </header>
 
@@ -118,7 +166,7 @@ function Hub() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {classes.map((cls, i) => {
             const style = cycleStyles[cls.cycle];
-            const count = studentsByClass[cls.id]?.length ?? 0;
+            const count = mounted ? (studentsByClass[cls.id]?.length ?? 0) : 0;
             return (
               <div
                 key={cls.id}
@@ -126,10 +174,15 @@ function Hub() {
                 style={{ animationDelay: `${i * 60}ms` }}
                 onClick={() => handleEnter(cls.id)}
               >
-                <div className={cn("absolute inset-x-0 top-0 h-2 bg-gradient-to-r", style.gradient)} />
+                <div
+                  className={cn("absolute inset-x-0 top-0 h-2 bg-gradient-to-r", style.gradient)}
+                />
 
                 <button
-                  onClick={(e) => { e.stopPropagation(); setConfirmDel(cls.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDel(cls.id);
+                  }}
                   className="absolute top-3 right-3 z-10 w-8 h-8 grid place-items-center rounded-full bg-surface border-[2.5px] border-ink shadow-pop-sm hover:bg-hot hover:text-hot-foreground transition-colors"
                   aria-label={`Supprimer ${cls.name}`}
                   title="Supprimer la classe"
@@ -138,14 +191,28 @@ function Hub() {
                 </button>
 
                 <div className="flex items-start justify-between mb-4 mt-2">
-                  <div className={cn("w-16 h-16 grid place-items-center rounded-2xl border-[3px] border-ink shadow-pop-sm font-display text-2xl bg-gradient-to-br", style.gradient)}>
-                    <span className="text-ink drop-shadow-[0_2px_0_hsl(var(--surface)/0.5)]">{cls.id.slice(0, 3)}</span>
+                  <div
+                    className={cn(
+                      "w-16 h-16 grid place-items-center rounded-2xl border-[3px] border-ink shadow-pop-sm font-display text-2xl bg-gradient-to-br",
+                      style.gradient,
+                    )}
+                  >
+                    <span className="text-ink drop-shadow-[0_2px_0_hsl(var(--surface)/0.5)]">
+                      {cls.id.slice(0, 3)}
+                    </span>
                   </div>
-                  <span className="text-3xl group-hover:animate-bounce-soft mr-9" aria-hidden>{cls.emoji}</span>
+                  <span className="text-3xl group-hover:animate-bounce-soft mr-9" aria-hidden>
+                    {cls.emoji}
+                  </span>
                 </div>
 
                 <h3 className="font-display text-2xl tracking-wide leading-tight">{cls.name}</h3>
-                <span className={cn("inline-block text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md mt-2 border-2 border-ink", style.pill)}>
+                <span
+                  className={cn(
+                    "inline-block text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md mt-2 border-2 border-ink",
+                    style.pill,
+                  )}
+                >
                   {style.label}
                 </span>
 
@@ -156,7 +223,11 @@ function Hub() {
                   </span>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={(e) => { e.stopPropagation(); ensureClass(cls.id); setRecapId(cls.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        ensureClass(cls.id);
+                        setRecapId(cls.id);
+                      }}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-surface text-ink border-2 border-ink text-[10px] font-display uppercase tracking-wider shadow-pop-sm hover:-translate-y-0.5 hover:bg-gradient-sun transition-all"
                       title="Récap. de classe"
                     >
@@ -169,7 +240,10 @@ function Hub() {
                     >
                       <MapIcon size={12} strokeWidth={3} /> Parcours
                     </button>
-                    <ChevronRight className="text-primary group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+                    <ChevronRight
+                      className="text-primary group-hover:translate-x-1 transition-transform"
+                      strokeWidth={3}
+                    />
                   </div>
                 </div>
               </div>
@@ -185,7 +259,9 @@ function Hub() {
                 <Plus size={28} strokeWidth={3} />
               </div>
               <p className="mt-3 font-display text-lg tracking-wide">Nouvelle classe</p>
-              <p className="text-[10px] uppercase tracking-widest text-ink-soft font-bold">Ajouter à la saison</p>
+              <p className="text-[10px] uppercase tracking-widest text-ink-soft font-bold">
+                Ajouter à la saison
+              </p>
             </div>
           </button>
         </div>
@@ -208,7 +284,9 @@ function Hub() {
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-soft block mb-1.5">Nom de la classe</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-soft block mb-1.5">
+                Nom de la classe
+              </label>
               <input
                 type="text"
                 value={name}
@@ -220,7 +298,9 @@ function Hub() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-soft block mb-1.5">Cycle</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-soft block mb-1.5">
+                Cycle
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 {(["cycle3", "cycle4"] as const).map((c) => (
                   <button
@@ -242,7 +322,9 @@ function Hub() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-soft block mb-1.5">Mascotte</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ink-soft block mb-1.5">
+                Mascotte
+              </label>
               <div className="flex flex-wrap gap-1.5">
                 {EMOJI_CHOICES.map((e) => (
                   <button
@@ -250,7 +332,9 @@ function Hub() {
                     onClick={() => setEmoji(e)}
                     className={cn(
                       "w-10 h-10 grid place-items-center rounded-xl border-[2.5px] border-ink text-xl transition-all",
-                      emoji === e ? "bg-primary shadow-pop-sm scale-110" : "bg-surface-2 hover:bg-muted",
+                      emoji === e
+                        ? "bg-primary shadow-pop-sm scale-110"
+                        : "bg-surface-2 hover:bg-muted",
                     )}
                   >
                     {e}
@@ -264,7 +348,12 @@ function Hub() {
             <PopButton variant="ghost" size="sm" onClick={() => setOpenAdd(false)}>
               <X size={14} strokeWidth={3} /> Annuler
             </PopButton>
-            <PopButton variant="primary" size="sm" onClick={handleConfirmAdd} disabled={!name.trim()}>
+            <PopButton
+              variant="primary"
+              size="sm"
+              onClick={handleConfirmAdd}
+              disabled={!name.trim()}
+            >
               <Plus size={14} strokeWidth={3} /> Créer la classe
             </PopButton>
           </DialogFooter>
@@ -282,9 +371,14 @@ function Hub() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[3px] border-ink rounded-2xl font-display uppercase">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="border-[3px] border-ink rounded-2xl font-display uppercase">
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (confirmDel) removeClass(confirmDel); setConfirmDel(null); }}
+              onClick={() => {
+                if (confirmDel) removeClass(confirmDel);
+                setConfirmDel(null);
+              }}
               className="bg-hot text-hot-foreground border-[3px] border-ink rounded-2xl font-display uppercase shadow-pop-sm"
             >
               <Trash2 size={14} strokeWidth={3} className="mr-1.5" /> Supprimer
@@ -293,19 +387,20 @@ function Hub() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {recapId && (() => {
-        const cls = classes.find((c) => c.id === recapId);
-        if (!cls) return null;
-        return (
-          <ClassRecapModal
-            open={!!recapId}
-            onOpenChange={(o) => !o && setRecapId(null)}
-            className={cls.name}
-            cycle={cls.cycle}
-            students={studentsByClass[cls.id] || []}
-          />
-        );
-      })()}
+      {recapId &&
+        (() => {
+          const cls = classes.find((c) => c.id === recapId);
+          if (!cls) return null;
+          return (
+            <ClassRecapModal
+              open={!!recapId}
+              onOpenChange={(o) => !o && setRecapId(null)}
+              className={cls.name}
+              cycle={cls.cycle}
+              students={studentsByClass[cls.id] || []}
+            />
+          );
+        })()}
     </main>
   );
 }

@@ -1,8 +1,32 @@
 import { createFileRoute, useNavigate as useTanstackNavigate } from "@tanstack/react-router";
 // Student profile — the "wow" page: hero, radar, level bar, stars per skill.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Activity, Brain, Users, Move, Crosshair, Sparkles, Trophy, Check, Undo2, Trash2, Map, AlertTriangle } from "lucide-react";
-import { CURRICULUM, MAX_LEVEL, generateClassStudents, getRankBadge, getMaxStarsForCycle, getCycleVocab, getProgressPercentage, type Difficulty, type DimensionKey } from "@/data/curriculum";
+import {
+  ArrowLeft,
+  Activity,
+  Brain,
+  Users,
+  Move,
+  Crosshair,
+  Sparkles,
+  Trophy,
+  Check,
+  Undo2,
+  Trash2,
+  Map,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  CURRICULUM,
+  MAX_LEVEL,
+  generateClassStudents,
+  getRankBadge,
+  getMaxStarsForCycle,
+  getCycleVocab,
+  getProgressPercentage,
+  type Difficulty,
+  type DimensionKey,
+} from "@/data/curriculum";
 import { useAppStore } from "@/store/AppStore";
 import { useAudio } from "@/lib/audio";
 import { AvatarBlob } from "@/components/game/AvatarBlob";
@@ -11,8 +35,14 @@ import { ComparativeRadar } from "@/components/game/ComparativeRadar";
 import { StarMeter } from "@/components/game/StarMeter";
 import { LevelUpOverlay } from "@/components/game/LevelUpOverlay";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
@@ -28,22 +58,22 @@ const dimIcons: Record<DimensionKey, typeof Activity> = {
 };
 
 const dimColorClass: Record<DimensionKey, string> = {
-  moteur:      "bg-dim-motor text-white",
-  technique:   "bg-dim-motor text-white",
+  moteur: "bg-dim-motor text-white",
+  technique: "bg-dim-motor text-white",
   deplacement: "bg-dim-motor text-white",
-  tactique:    "bg-dim-tactic text-white",
-  methodo:     "bg-dim-method text-white",
-  social:      "bg-dim-social text-white",
+  tactique: "bg-dim-tactic text-white",
+  methodo: "bg-dim-method text-white",
+  social: "bg-dim-social text-white",
 };
 
 // Couleur de la bordure pour la mini-bordure latérale de la carte de contenu.
 const dimBorderClass: Record<DimensionKey, string> = {
-  moteur:      "border-l-dim-motor",
-  technique:   "border-l-dim-motor",
+  moteur: "border-l-dim-motor",
+  technique: "border-l-dim-motor",
   deplacement: "border-l-dim-motor",
-  tactique:    "border-l-dim-tactic",
-  methodo:     "border-l-dim-method",
-  social:      "border-l-dim-social",
+  tactique: "border-l-dim-tactic",
+  methodo: "border-l-dim-method",
+  social: "border-l-dim-social",
 };
 
 const StudentProfile = () => {
@@ -57,7 +87,16 @@ const StudentProfile = () => {
     }
     navigate({ to: "/class/$classId/parcours", params: { classId } });
   };
-  const { classes, studentsByClass, ensureClass, getStudent, bumpSkill, removeStudent, pendingLevelUp, clearLevelUp } = useAppStore();
+  const {
+    classes,
+    studentsByClass,
+    ensureClass,
+    getStudent,
+    bumpSkill,
+    removeStudent,
+    pendingLevelUp,
+    clearLevelUp,
+  } = useAppStore();
   const { setBgm, playSfx } = useAudio();
   const cls = classes.find((c) => c.id === classId);
   const [burstKeys, setBurstKeys] = useState<Record<string, number>>({});
@@ -74,7 +113,10 @@ const StudentProfile = () => {
   }, [setBgm]);
 
   const storedClassStudents = studentsByClass[classId];
-  const fallbackClassStudents = useMemo(() => storedClassStudents ? [] : generateClassStudents(classId), [storedClassStudents, classId]);
+  const fallbackClassStudents = useMemo(
+    () => (storedClassStudents ? [] : generateClassStudents(classId)),
+    [storedClassStudents, classId],
+  );
   const classStudents = storedClassStudents ?? fallbackClassStudents;
   const student = getStudent(classId, studentId) ?? classStudents.find((s) => s.id === studentId);
   const cycle = cls?.cycle ?? "cycle3";
@@ -84,7 +126,9 @@ const StudentProfile = () => {
   const maxStars = getMaxStarsForCycle(cycle);
   const vocab = getCycleVocab(cycle);
   const totalSkills = Object.values(categories).reduce((acc, c) => acc + c.skills.length, 0);
-  const totalStars = student ? Object.values(student.skillStates).reduce((acc, n) => acc + n, 0) : 0;
+  const totalStars = student
+    ? Object.values(student.skillStates).reduce((acc, n) => acc + n, 0)
+    : 0;
   const maxTotalStars = totalSkills * maxStars;
   // Jauge intra-niveau (0..100) — délégué au helper centralisé.
   // Cycle 3 : (rawLevel % 1)*100, soit +62.5% par étoile (formule TotalÉtoiles × 5/8).
@@ -129,7 +173,9 @@ const StudentProfile = () => {
   // Map of difficulties by skillId for quick lookup
   const difficultyBySkill = useMemo(() => {
     const map: Record<string, Difficulty> = {};
-    (student?.difficulties || []).forEach((d) => { map[d.skillId] = d; });
+    (student?.difficulties || []).forEach((d) => {
+      map[d.skillId] = d;
+    });
     return map;
   }, [student?.difficulties]);
 
@@ -152,6 +198,8 @@ const StudentProfile = () => {
       setBurstKeys((b) => ({ ...b, [skillId]: (b[skillId] || 0) + 1 }));
     }
   };
+
+  const hasHighDifficulty = (student.difficulties || []).some((d) => d.currentLevel <= 2);
 
   return (
     <main className="min-h-screen pb-24">
@@ -198,7 +246,12 @@ const StudentProfile = () => {
             {/* avatar */}
             <div className="flex justify-center md:justify-start">
               <div className="relative animate-float-y">
-                <AvatarBlob name={student.name} hue={student.avatarHue} size={140} rank={rank!.tier} />
+                <AvatarBlob
+                  name={student.name}
+                  hue={student.avatarHue}
+                  size={140}
+                  rank={rank!.tier}
+                />
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-ink text-surface font-display text-xs px-3 py-1 rounded-full border-[3px] border-surface tracking-widest whitespace-nowrap">
                   {rank!.emoji} {rank!.label}
                 </div>
@@ -210,17 +263,25 @@ const StudentProfile = () => {
               <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">
                 {cls.name} · {cycle === "cycle3" ? "Cycle 3" : "Cycle 4"}
               </p>
-              <h1 className="font-display text-5xl md:text-7xl leading-none mt-1">{student.name}</h1>
+              <h1 className="font-display text-5xl md:text-7xl leading-none mt-1">
+                {student.name}
+              </h1>
 
               {/* level row */}
               <div className="mt-5 flex flex-col md:flex-row md:items-center gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-sun border-[3px] border-ink shadow-pop-sm grid place-items-center">
-                    <span className="font-display text-3xl text-ink leading-none">N{student.level}</span>
+                    <span className="font-display text-3xl text-ink leading-none">
+                      N{student.level}
+                    </span>
                   </div>
                   <div className="text-left">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">Niveau actuel</div>
-                    <div className="font-display text-xl">{student.level} / {MAX_LEVEL}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">
+                      Niveau actuel
+                    </div>
+                    <div className="font-display text-xl">
+                      {student.level} / {MAX_LEVEL}
+                    </div>
                   </div>
                 </div>
 
@@ -243,7 +304,9 @@ const StudentProfile = () => {
 
               {/* xp stars */}
               <div className="mt-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ink-soft">
-                <span>⭐ {totalStars} / {maxTotalStars} étoiles</span>
+                <span>
+                  ⭐ {totalStars} / {maxTotalStars} étoiles
+                </span>
                 <span className="text-ink/30">·</span>
                 <span>XP {xpPct}%</span>
               </div>
@@ -252,7 +315,12 @@ const StudentProfile = () => {
             {/* radar comparatif élève vs moyenne classe */}
             <div className="flex justify-center md:justify-end w-full min-w-0">
               <div className="w-full min-w-[280px] max-w-[420px] md:w-[420px] h-[320px] shrink-0">
-                <ComparativeRadar student={student} classmates={classStudents.length ? classStudents : [student]} cycle={cycle} height={320} />
+                <ComparativeRadar
+                  student={student}
+                  classmates={classStudents.length ? classStudents : [student]}
+                  cycle={cycle}
+                  height={320}
+                />
               </div>
             </div>
           </div>
@@ -263,30 +331,66 @@ const StudentProfile = () => {
       {/* DIFFICULTIES ALERT */}
       {(student.difficulties?.length ?? 0) > 0 && (
         <section className="max-w-6xl mx-auto px-4 md:px-8 mt-6">
-          <div className="relative pop-card overflow-hidden border-[3px] border-[oklch(0.65_0.28_25)] bg-[oklch(0.97_0.04_25)]">
-            <div className="absolute inset-0 pointer-events-none animate-pulse bg-[oklch(0.65_0.28_25)]/5" />
+          <div
+            className={cn(
+              "relative pop-card overflow-hidden border-[3px]",
+              hasHighDifficulty
+                ? "border-[oklch(0.65_0.28_25)] bg-[oklch(0.97_0.04_25)]"
+                : "border-ink/25 bg-surface-2/50 opacity-80",
+            )}
+          >
+            {hasHighDifficulty && (
+              <div className="absolute inset-0 pointer-events-none animate-pulse bg-[oklch(0.65_0.28_25)]/5" />
+            )}
             <div className="p-4 md:p-5 flex items-start gap-3 relative">
-              <div className="w-10 h-10 rounded-xl bg-[oklch(0.65_0.28_25)] text-white border-[2.5px] border-ink grid place-items-center shrink-0 shadow-pop-sm">
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-xl border-[2.5px] border-ink grid place-items-center shrink-0 shadow-pop-sm",
+                  hasHighDifficulty
+                    ? "bg-[oklch(0.65_0.28_25)] text-white"
+                    : "bg-surface text-ink-soft",
+                )}
+              >
                 <AlertTriangle size={22} strokeWidth={3} />
               </div>
               <div className="flex-1">
-                <h2 className="font-display text-lg md:text-xl uppercase tracking-wide text-[oklch(0.45_0.22_25)] leading-tight">
+                <h2
+                  className={cn(
+                    "font-display text-lg md:text-xl uppercase tracking-wide leading-tight",
+                    hasHighDifficulty ? "text-[oklch(0.45_0.22_25)]" : "text-ink-soft",
+                  )}
+                >
                   Difficultés repérées · {student.difficulties.length}
                 </h2>
                 <p className="text-xs font-semibold text-ink-soft">
-                  {vocab.skillPlural} sur {vocab.skillPlural === "Contenus" ? "lesquels" : "lesquelles"} {student.name} stagne actuellement.
+                  {vocab.skillPlural} sur{" "}
+                  {vocab.skillPlural === "Contenus" ? "lesquels" : "lesquelles"} {student.name}{" "}
+                  stagne actuellement.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {student.difficulties.map((d) => {
-                    const skill = Object.values(categories).flatMap((c) => c.skills).find((s) => s.id === d.skillId);
+                    const skill = Object.values(categories)
+                      .flatMap((c) => c.skills)
+                      .find((s) => s.id === d.skillId);
+                    const high = d.currentLevel <= 2;
                     return (
                       <div
                         key={d.id}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-[2.5px] border-ink bg-surface shadow-pop-sm"
+                        className={cn(
+                          "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-[2.5px] border-ink bg-surface shadow-pop-sm",
+                          !high && "opacity-60 grayscale",
+                        )}
                       >
                         <span className="relative inline-grid place-items-center">
-                          <span className="absolute inset-0 rounded-full ring-2 ring-[oklch(0.65_0.28_25)] animate-ping" />
-                          <span className="relative w-2.5 h-2.5 rounded-full bg-[oklch(0.65_0.28_25)]" />
+                          {high && (
+                            <span className="absolute inset-0 rounded-full ring-2 ring-[oklch(0.65_0.28_25)] animate-ping" />
+                          )}
+                          <span
+                            className={cn(
+                              "relative w-2.5 h-2.5 rounded-full",
+                              high ? "bg-[oklch(0.65_0.28_25)]" : "bg-ink-soft/45",
+                            )}
+                          />
                         </span>
                         <span className="font-display text-xs uppercase">{d.skillCode}</span>
                         <span className="text-xs font-semibold text-ink truncate max-w-[180px]">
@@ -326,20 +430,26 @@ const StudentProfile = () => {
                   className={cn(
                     "pop-card overflow-hidden flex flex-col border-l-[6px]",
                     dimBorderClass[key],
-                    flagged && "ring-2 ring-[oklch(0.65_0.28_25)]"
+                    flagged && "ring-2 ring-[oklch(0.65_0.28_25)]",
                   )}
                 >
                   {/* Badge secteur en en-tête (toujours visible, donne la couleur identitaire) */}
                   <div className="px-3 pt-3 pb-2 flex items-center gap-2">
-                    <span className={cn(
-                      "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border-[2.5px] border-ink font-display text-[10px] uppercase tracking-widest",
-                      dimColorClass[key]
-                    )}>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border-[2.5px] border-ink font-display text-[10px] uppercase tracking-widest",
+                        dimColorClass[key],
+                      )}
+                    >
                       <Icon size={11} strokeWidth={3} />
                       {cat.label}
                     </span>
                     {flagged && (
-                      <AlertTriangle size={14} strokeWidth={3} className="text-[oklch(0.65_0.28_25)] ml-auto" />
+                      <AlertTriangle
+                        size={14}
+                        strokeWidth={3}
+                        className="text-[oklch(0.65_0.28_25)] ml-auto"
+                      />
                     )}
                   </div>
 
@@ -362,12 +472,20 @@ const StudentProfile = () => {
                         {currentDesc ?? "Aucun palier acquis pour le moment."}
                       </p>
                     </div>
-                    <div className={cn(
-                      "rounded-lg border-2 px-2 py-1.5",
-                      nextDesc ? "border-primary/50 bg-primary/5" : "border-secondary/50 bg-secondary/10"
-                    )}>
+                    <div
+                      className={cn(
+                        "rounded-lg border-2 px-2 py-1.5",
+                        nextDesc
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-secondary/50 bg-secondary/10",
+                      )}
+                    >
                       <div className="text-[9px] font-bold uppercase tracking-widest text-ink-soft mb-0.5 flex items-center gap-1">
-                        {nextDesc ? <Sparkles size={9} strokeWidth={3} /> : <Trophy size={9} strokeWidth={3} />}
+                        {nextDesc ? (
+                          <Sparkles size={9} strokeWidth={3} />
+                        ) : (
+                          <Trophy size={9} strokeWidth={3} />
+                        )}
                         {nextDesc ? `Objectif · L${stars + 1}` : "Maîtrise totale"}
                       </div>
                       <p className="text-[11px] leading-snug font-semibold text-ink">
@@ -406,11 +524,15 @@ const StudentProfile = () => {
                         "flex-1 h-8 px-2 inline-flex items-center justify-center gap-1 rounded-lg font-display text-[10px] uppercase tracking-wider",
                         "border-[2px] border-ink bg-primary text-primary-foreground shadow-pop-sm",
                         "hover:-translate-y-0.5 hover:bg-primary-glow active:translate-y-[1px] active:shadow-none",
-                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 transition-all"
+                        "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 transition-all",
                       )}
                       title={isMax ? "Maîtrise totale" : "Valider le palier suivant"}
                     >
-                      {isMax ? <Trophy size={12} strokeWidth={3} /> : <Check size={12} strokeWidth={3} />}
+                      {isMax ? (
+                        <Trophy size={12} strokeWidth={3} />
+                      ) : (
+                        <Check size={12} strokeWidth={3} />
+                      )}
                       {isMax ? "Max" : "Valider"}
                     </button>
                   </div>
@@ -435,9 +557,14 @@ const StudentProfile = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[3px] border-ink rounded-2xl font-display uppercase">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="border-[3px] border-ink rounded-2xl font-display uppercase">
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { removeStudent(classId, studentId); goBack(); }}
+              onClick={() => {
+                removeStudent(classId, studentId);
+                goBack();
+              }}
               className="bg-hot text-hot-foreground border-[3px] border-ink rounded-2xl font-display uppercase shadow-pop-sm"
             >
               <Trash2 size={14} strokeWidth={3} className="mr-1.5" /> Supprimer
@@ -449,6 +576,6 @@ const StudentProfile = () => {
   );
 };
 
-
-
-export const Route = createFileRoute("/class/$classId/student/$studentId")({ component: StudentProfile });
+export const Route = createFileRoute("/class/$classId/student/$studentId")({
+  component: StudentProfile,
+});
