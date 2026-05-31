@@ -387,9 +387,11 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
               // Seuil de tolérance : on ne déclenche l'alerte qu'à partir
               // de 2 stagnations consécutives (en remontant l'historique).
               let consecutive = 1;
-              for (const past of situationHistory) {
-                if (past.classId !== classId) continue;
-                if (!past.skillIds.includes(skillId)) continue;
+              const previousSameSkill = situationHistory
+                .filter((past) => past.classId === classId && past.skillIds.includes(skillId))
+                .slice()
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              for (const past of previousSameSkill) {
                 const didProgress = past.progressed.some((p) => p.studentId === s.id && p.skillId === skillId);
                 if (didProgress) break;
                 const didStagnate = past.stagnated.some((p) => p.studentId === s.id && p.skillId === skillId && p.level === afterStars);
