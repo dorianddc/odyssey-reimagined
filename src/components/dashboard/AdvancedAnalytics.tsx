@@ -492,20 +492,14 @@ function NeedsMatrix({ students, cycle }: Props) {
                         }) => {
                           const { cx, cy, payload } = p;
                           if (cx == null || cy == null || !payload) return <g />;
-                          const stroke = quadrantStroke(
-                            payload.scoreMoteur,
-                            payload.scoreSocio,
-                            meanMotor,
-                            meanSocio,
-                          );
                           return (
                             <circle
                               cx={cx}
                               cy={cy}
                               r={4.1}
                               fill="#0a0a0a"
-                              stroke={stroke}
-                              strokeWidth={2.4}
+                              stroke="#ffffff"
+                              strokeWidth={0.8}
                               fillOpacity={0.96}
                             />
                           );
