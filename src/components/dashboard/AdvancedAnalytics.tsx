@@ -9,8 +9,8 @@
 // ============================================================================
 import { useMemo, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
   ScatterChart, Scatter, ReferenceLine, ReferenceArea, ZAxis,
 } from "recharts";
 import { CURRICULUM, type Cycle, type Student, type DimensionKey } from "@/data/curriculum";
