@@ -306,10 +306,29 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
                 studentId: s.id, studentName: s.name, skillId,
                 skillCode: meta.skill.code, before: beforeStars, after: afterStars,
               });
-              // student progressed on this skill → clear any prior difficulty for it
+              // Progression sur ce skill → on retire toute alerte existante.
+              // Pas de nouvelle pastille tant que l'élève progresse, même < mastery.
               s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
-              // if still under mastery, keep the difficulty list as-is (no new entry on progression)
-              if (afterStars < MASTERY_THRESHOLD) {
+            } else if (afterStars < MASTERY_THRESHOLD) {
+              // Stagnation détectée sur ce skill.
+              outcome.stagnated.push({
+                studentId: s.id, studentName: s.name, skillId,
+                skillCode: meta.skill.code, level: afterStars,
+              });
+              // Seuil de tolérance : on ne déclenche l'alerte qu'à partir
+              // de 2 stagnations consécutives (en remontant l'historique).
+              let consecutive = 1;
+              for (const past of situationHistory) {
+                if (past.classId !== classId) continue;
+                if (!past.skillIds.includes(skillId)) continue;
+                const didProgress = past.progressed.some((p) => p.studentId === s.id && p.skillId === skillId);
+                if (didProgress) break;
+                const didStagnate = past.stagnated.some((p) => p.studentId === s.id && p.skillId === skillId);
+                if (didStagnate) consecutive++;
+                else break;
+              }
+              if (consecutive >= 2) {
+                const filtered = s.difficulties.filter((d) => d.skillId !== skillId);
                 const diff: Difficulty = {
                   id: `${s.id}-${skillId}-${Date.now()}`,
                   skillId,
@@ -318,24 +337,11 @@ export const AppStoreProvider = ({ children }: { children: ReactNode }) => {
                   currentLevel: afterStars,
                   date: new Date().toISOString(),
                 };
-                s.difficulties = [...s.difficulties, diff];
+                s.difficulties = [...filtered, diff];
+              } else {
+                // 1ère stagnation isolée → on laisse le temps d'apprendre, pas de pastille.
+                s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
               }
-            } else if (afterStars < MASTERY_THRESHOLD) {
-              // stagnation — record / refresh difficulty for THIS skill only
-              outcome.stagnated.push({
-                studentId: s.id, studentName: s.name, skillId,
-                skillCode: meta.skill.code, level: afterStars,
-              });
-              const filtered = s.difficulties.filter((d) => d.skillId !== skillId);
-              const diff: Difficulty = {
-                id: `${s.id}-${skillId}-${Date.now()}`,
-                skillId,
-                skillCode: meta.skill.code,
-                dimension: meta.dimension,
-                currentLevel: afterStars,
-                date: new Date().toISOString(),
-              };
-              s.difficulties = [...filtered, diff];
             } else {
               // reached mastery threshold → drop any prior difficulty on this skill
               s.difficulties = s.difficulties.filter((d) => d.skillId !== skillId);
