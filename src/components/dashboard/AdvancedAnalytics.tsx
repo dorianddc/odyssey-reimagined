@@ -589,11 +589,3 @@ function EmptyBox({ label }: { label: string }) {
     </div>
   );
 }
-function QuadLegend({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-surface-2 border-2 border-ink/20">
-      <span className="w-3 h-3 rounded-full border-2 border-ink" style={{ background: color }} />
-      <span className="truncate">{label}</span>
-    </div>
-  );
-}
